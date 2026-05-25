@@ -26,9 +26,9 @@ function getScoutStage(schoolStage, gender) {
     if (stage === 'براعم') return 'براعم';
     else if (stage === 'ابتدائي' && g === 'ولد') return 'أشبال';
     else if (stage === 'ابتدائي' && g === 'بنت') return 'زهرات';
-    else if (stage === 'اعدادي' && g === 'ولد') return 'كشاف مبتدئ';
+    else if (stage === 'اعدادي' && g === 'ولد') return 'مبتدئ';
     else if (stage === 'اعدادي' && g === 'بنت') return 'مرشدات';
-    else if (stage === 'ثانوي' && g === 'ولد') return 'كشاف متقدم';
+    else if (stage === 'ثانوي' && g === 'ولد') return 'متقدم';
     else if (stage === 'ثانوي' && g === 'بنت') return 'رائدات';
     else return 'مش محدد';
 }
