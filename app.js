@@ -1,7 +1,19 @@
+// ==================== حماية الصفحة ====================
+const sessionData = localStorage.getItem('scout_leader_session');
+if (!sessionData) {
+    window.location.href = 'index.html'; 
+}
+const currentUser = JSON.parse(sessionData);
+
+// تشغيل الفلترة وجلب البيانات أول ما الصفحة تفتح
+document.addEventListener('DOMContentLoaded', () => {
+    applyRoleRestrictions();
+    fetchScouts();
+});
+
 // ==================== إعدادات الاتصال بـ Supabase ====================
 const SUPABASE_URL = 'https://xbdprjxvtwfieiqncbez.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
-
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let allScouts = [];
@@ -26,52 +38,92 @@ function getScoutStage(schoolStage, gender) {
     if (stage === 'براعم') return 'براعم';
     else if (stage === 'ابتدائي' && g === 'ولد') return 'أشبال';
     else if (stage === 'ابتدائي' && g === 'بنت') return 'زهرات';
-    else if (stage === 'اعدادي' && g === 'ولد') return 'مبتدئ';
+    else if (stage === 'اعدادي' && g === 'ولد') return 'كشاف مبتدئ';
     else if (stage === 'اعدادي' && g === 'بنت') return 'مرشدات';
-    else if (stage === 'ثانوي' && g === 'ولد') return 'متقدم';
+    else if (stage === 'ثانوي' && g === 'ولد') return 'كشاف متقدم';
     else if (stage === 'ثانوي' && g === 'بنت') return 'رائدات';
     else return 'مش محدد';
 }
 
+// ==================== دالة التحكم في إظهار وإخفاء التابات والزراير ====================
+function applyRoleRestrictions() {
+    if (currentUser.role === 'Viewer') {
+        const addBtn = document.getElementById('addScoutBtn'); 
+        if (addBtn) addBtn.style.display = 'none';
+    }
+
+    if (currentUser.role === 'TroopLeader') {
+        const tabBtns = document.querySelectorAll('.tab-btn'); 
+        let allowedTabs = ['الكل'];
+
+        const primaryStage = ['أشبال', 'زهرات'];
+        const prepStage = ['كشاف مبتدئ', 'مرشدات'];
+        const secStage = ['كشاف متقدم', 'رائدات'];
+
+        if (primaryStage.includes(currentUser.troop)) {
+            allowedTabs.push(...primaryStage);
+        } else if (prepStage.includes(currentUser.troop)) {
+            allowedTabs.push(...prepStage);
+        } else if (secStage.includes(currentUser.troop)) {
+            allowedTabs.push(...secStage);
+        } else {
+            allowedTabs.push(currentUser.troop); 
+        }
+
+        tabBtns.forEach(btn => {
+            const tabName = btn.innerText.trim();
+            if (!allowedTabs.includes(tabName)) {
+                btn.style.display = 'none';
+            }
+        });
+    }
+}
+
 // ==================== بنجيب الكشافة من الداتابيز ====================
 async function fetchScouts() {
-    const { data, error } = await supabaseClient
-        .from('scouts')
-        .select('*')
-        .order('scout_id', { ascending: true });
+    // Non-admin users should only see scouts with status 'مقبول'.
+    // Master/General see everything (including 'قيد الانتظار') so they can approve.
+    let query;
+    if (currentUser.role === 'Master' || currentUser.role === 'General') {
+        query = supabaseClient.from('scouts').select('*');
+    } else {
+        query = supabaseClient.from('scouts').select('*').eq('status', 'مقبول');
+    }
 
+    if (currentUser.role === 'TroopLeader') {
+        if (['أشبال', 'زهرات'].includes(currentUser.troop)) {
+            query = query.eq('school_stage', 'ابتدائي');
+        } else if (['كشاف مبتدئ', 'مرشدات'].includes(currentUser.troop)) {
+            query = query.eq('school_stage', 'اعدادي');
+        } else if (['كشاف متقدم', 'رائدات'].includes(currentUser.troop)) {
+            query = query.eq('school_stage', 'ثانوي');
+        } else {
+            query = query.eq('school_stage', currentUser.troop);
+        }
+    }
+
+    const { data, error } = await query;
     if (error) {
-        console.error('فيه مشكلة في جلب البيانات:', error);
-        alert('في مشكلة وقت ما كنا بنجيب بيانات الكشافة من السيرفر، اتأكد من الكونكشن.');
+        alert('فشل التحميل: ' + error.message); 
         return;
     }
 
-    allScouts = data.map(scout => ({
-        ...scout,
-        scout_group: getScoutStage(scout.school_stage, scout.gender)
-    }));
-
-    renderTable();
+    allScouts = data.map(scout => {
+        scout.scout_group = getScoutStage(scout.school_stage, scout.gender);
+        return scout;
+    });
+    renderTable(); 
 }
 
-// ==================== بنولد كود جديد أوتوماتيك ====================
 function generateNextScoutId() {
     if (allScouts.length === 0) return 'A00001';
-
-    // بناخد كل الأرقام من الكودات الموجودة
-    const nums = allScouts
-        .map(s => {
-            const match = s.scout_id?.match(/^A(\d+)$/i);
-            return match ? parseInt(match[1], 10) : 0;
-        })
-        .filter(n => !isNaN(n));
+    const nums = allScouts.map(s => {
+        const match = s.scout_id?.match(/^A(\d+)$/i);
+        return match ? parseInt(match[1], 10) : 0;
+    }).filter(n => !isNaN(n));
 
     const maxNum = Math.max(...nums);
-    // بنحافظ على نفس عدد الخانات + 1
-    const nextNum = maxNum + 1;
-    const digits = String(maxNum).length;
-    const padded = String(nextNum).padStart(digits, '0');
-    return `A${padded}`;
+    return `A${String(maxNum + 1).padStart(5, '0')}`;
 }
 
 // ==================== بنرسم الجدول ====================
@@ -87,7 +139,7 @@ function renderTable() {
     });
 
     if (filteredScouts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">مفيش نتايج تطابق اللي بتدور عليه...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">مفيش نتايج...</td></tr>`;
         return;
     }
 
@@ -95,17 +147,30 @@ function renderTable() {
         const imgSrc = getDirectDriveLink(scout.photo_url);
         const tr = document.createElement('tr');
         tr.className = "border-b hover:bg-blue-50/40 transition duration-150 text-sm md:text-base";
+        
+        let actionsHtml = '';
+        if (currentUser.role === 'Viewer') {
+            actionsHtml = `<button onclick="viewProfile('${scout.scout_id}')" class="text-blue-600 hover:text-blue-900 text-lg" title="شوف الملف الكامل"><i class="fa-solid fa-address-card"></i></button>`;
+        } else if (currentUser.role === 'TroopLeader') {
+            actionsHtml = `
+                <button onclick="viewProfile('${scout.scout_id}')" class="text-blue-600 hover:text-blue-900 text-lg" title="شوف الملف الكامل"><i class="fa-solid fa-address-card"></i></button>
+                <button onclick="openEditModal('${scout.scout_id}')" class="text-green-600 hover:text-green-900 text-lg" title="عدّل البيانات"><i class="fa-solid fa-user-pen"></i></button>
+            `;
+        } else {
+            actionsHtml = `
+                <button onclick="viewProfile('${scout.scout_id}')" class="text-blue-600 hover:text-blue-900 text-lg" title="شوف الملف الكامل"><i class="fa-solid fa-address-card"></i></button>
+                <button onclick="openEditModal('${scout.scout_id}')" class="text-green-600 hover:text-green-900 text-lg" title="عدّل البيانات"><i class="fa-solid fa-user-pen"></i></button>
+                <button onclick="deleteScout('${scout.scout_id}')" class="text-red-500 hover:text-red-800 text-lg" title="امسح الكشاف ده"><i class="fa-solid fa-user-minus"></i></button>
+            `;
+        }
+
         tr.innerHTML = `
             <td class="p-4"><img src="${imgSrc}" class="w-11 h-11 rounded-full object-cover cursor-pointer border border-gray-200 shadow-sm" onclick="openImagePreview('${imgSrc}')"></td>
             <td class="p-4 font-bold text-blue-900">${scout.scout_id}</td>
             <td class="p-4 font-medium text-gray-900">${scout.full_name}</td>
-            <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">${scout.scout_group}</span></td>
+            <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100">${scout.scout_group || '-'}</span></td>
             <td class="p-4 text-gray-600 font-mono" dir="ltr">${scout.personal_phone || '-'}</td>
-            <td class="p-4 text-center space-x-3 space-x-reverse">
-                <button onclick="viewProfile('${scout.scout_id}')" class="text-blue-600 hover:text-blue-900 text-lg" title="شوف الملف الكامل"><i class="fa-solid fa-address-card"></i></button>
-                <button onclick="openEditModal('${scout.scout_id}')" class="text-green-600 hover:text-green-900 text-lg" title="عدّل البيانات"><i class="fa-solid fa-user-pen"></i></button>
-                <button onclick="deleteScout('${scout.scout_id}')" class="text-red-500 hover:text-red-800 text-lg" title="امسح الكشاف ده"><i class="fa-solid fa-user-minus"></i></button>
-            </td>
+            <td class="p-4 text-center space-x-3 space-x-reverse">${actionsHtml}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -114,10 +179,9 @@ function renderTable() {
 function filterData(stage, btnElement) {
     currentFilterStage = stage;
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    btnElement.classList.add('active');
+    if(btnElement) btnElement.classList.add('active');
     renderTable();
 }
-
 document.getElementById('searchInput').addEventListener('input', renderTable);
 
 // ==================== بنفتح البروفايل الكامل ====================
@@ -131,31 +195,13 @@ function viewProfile(id) {
     document.getElementById('modalStageBadge').textContent = scout.scout_group;
 
     const fieldLabels = {
-        'scout_id': 'الكود الكشفي',
-        'full_name': 'الاسم الرباعي',
-        'birth_date': 'تاريخ الميلاد',
-        'gender': 'النوع',
-        'personal_phone': 'موبايل الكشاف',
-        'father_phone': 'تليفون الأب',
-        'mother_phone': 'تليفون الأم',
-        'address': 'العنوان بالكامل',
-        'school_stage': 'المرحلة الدراسية',
-        'school_year': 'السنة الدراسية',
-        'personal_email': 'الإيميل بتاعه',
-        'facebook_account': 'أكونت الفيسبوك',
-        'instagram_account': 'أكونت الإنستجرام',
-        'scout_uniform': 'الزي الكشفي موجود؟',
-        'confession_father': 'أب الاعتراف',
-        'confession_church': 'كنيسة أب الاعتراف',
-        'father_job': 'شغل الأب',
-        'mother_job': 'شغل الأم',
-        'siblings_count': 'عدد الإخوة',
-        'sibling_order': 'ترتيبه بين إخواته',
-        'has_diseases': 'عنده أمراض؟',
-        'diseases_details': 'تفاصيل الحالة الصحية',
-        'hobbies': 'هواياته ومهاراته',
-        'certificate': 'مؤهله / شهادته',
-        'mobile_check_status': 'حالة مراجعة الموبايل'
+        'scout_id': 'الكود الكشفي', 'full_name': 'الاسم الرباعي', 'birth_date': 'تاريخ الميلاد', 'gender': 'النوع',
+        'personal_phone': 'موبايل الكشاف', 'father_phone': 'تليفون الأب', 'mother_phone': 'تليفون الأم',
+        'address': 'العنوان بالكامل', 'school_stage': 'المرحلة الدراسية', 'school_year': 'السنة الدراسية',
+        'personal_email': 'الإيميل بتاعه', 'facebook_account': 'أكونت الفيسبوك', 'instagram_account': 'أكونت الإنستجرام',
+        'scout_uniform': 'الزي الكشفي موجود؟', 'confession_father': 'أب الاعتراف', 'confession_church': 'كنيسة أب الاعتراف',
+        'father_job': 'شغل الأب', 'mother_job': 'شغل الأم', 'siblings_count': 'عدد الإخوة', 'sibling_order': 'ترتيبه بين إخواته',
+        'has_diseases': 'عنده أمراض؟', 'diseases_details': 'تفاصيل الحالة الصحية', 'hobbies': 'هواياته ومهاراته', 'certificate': 'مؤهله / شهادته'
     };
 
     let detailsHTML = '';
@@ -163,176 +209,155 @@ function viewProfile(id) {
         const label = fieldLabels[key];
         let value = scout[key];
         if (value === undefined || value === null || String(value).trim() === '') value = '-';
-        let specialCardStyle = '';
-        if ((key === 'has_diseases' && value === 'نعم') || (key === 'diseases_details' && value !== '-')) {
-            specialCardStyle = 'bg-red-50 border-red-200 text-red-900';
-        } else {
-            specialCardStyle = 'bg-gray-50 border-gray-100';
-        }
+        let specialCardStyle = ((key === 'has_diseases' && value === 'نعم') || (key === 'diseases_details' && value !== '-')) 
+                                ? 'bg-red-50 border-red-200 text-red-900' : 'bg-gray-50 border-gray-100';
         detailsHTML += `
             <div class="p-3 border rounded-lg ${specialCardStyle} flex flex-col gap-1 shadow-sm">
                 <span class="text-xs font-bold text-gray-400">${label}</span>
-                <span class="font-semibold  break-words" ${key.includes('phone') ? 'dir="ltr" class="text-right font-mono text-xs"' : ''}>${value}</span>
+                <span class="font-semibold break-words" ${key.includes('phone') ? 'dir="ltr" class="text-right font-mono text-xs"' : ''}>${value}</span>
             </div>
         `;
     });
-
     document.getElementById('modalDetails').innerHTML = detailsHTML;
     document.getElementById('profileModal').classList.remove('hidden');
 }
 
-function openImagePreview(src) {
-    document.getElementById('fullSizeImage').src = src;
-    document.getElementById('imageModal').classList.remove('hidden');
-}
+function openImagePreview(src) { document.getElementById('fullSizeImage').src = src; document.getElementById('imageModal').classList.remove('hidden'); }
+function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-}
+// ==================== الفحص الذكي للأخطاء ====================
+function validateScoutData(data) {
+    let isValid = true;
+    let firstErrorElement = null;
 
-// ==================== تحميل كارت PDF ====================
-async function exportProfileToPDF() {
-    const { jsPDF } = window.jspdf;
-    const element = document.getElementById('printProfileArea');
-    const scoutName = document.getElementById('modalName').textContent || 'كشاف';
-
-    const btn = document.querySelector('[onclick="exportProfileToPDF()"]');
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> بيتحمل...';
-    btn.disabled = true;
-
-    try {
-        const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#ffffff',
-            scrollY: -window.scrollY,
-            windowWidth: element.scrollWidth,
-            windowHeight: element.scrollHeight,
-            logging: false,
-        });
-
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const pageWidth  = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin     = 10;
-        const usableW    = pageWidth - margin * 2;
-        const imgH       = usableW * (canvas.height / canvas.width);
-
-        if (imgH <= pageHeight - margin * 2) {
-            pdf.addImage(imgData, 'JPEG', margin, margin, usableW, imgH);
-        } else {
-            const pageContentH = pageHeight - margin * 2;
-            let remaining = imgH;
-            let srcY = 0;
-            while (remaining > 0) {
-                const sliceH = Math.min(remaining, pageContentH);
-                const ratio  = canvas.width / usableW;
-                const slice  = document.createElement('canvas');
-                slice.width  = canvas.width;
-                slice.height = sliceH * ratio;
-                slice.getContext('2d').drawImage(canvas, 0, srcY * ratio, canvas.width, sliceH * ratio, 0, 0, canvas.width, sliceH * ratio);
-                pdf.addImage(slice.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, usableW, sliceH);
-                remaining -= pageContentH;
-                srcY      += pageContentH;
-                if (remaining > 0) pdf.addPage();
+    function setError(inputId, message) {
+        isValid = false;
+        const inputEl = document.getElementById(inputId);
+        if (inputEl) {
+            inputEl.classList.add('border-red-500', 'bg-red-50');
+            let errorSpan = document.getElementById(inputId + '_error');
+            if (!errorSpan) {
+                errorSpan = document.createElement('span');
+                errorSpan.id = inputId + '_error';
+                errorSpan.className = 'text-red-500 text-xs mt-1 block font-bold';
+                inputEl.parentNode.insertBefore(errorSpan, inputEl.nextSibling);
             }
-        }
-
-        pdf.save(`كارت_${scoutName}.pdf`);
-    } catch (err) {
-        console.error('مشكلة في الـ PDF:', err);
-        alert('في مشكلة وقت ما كنا بنعمل الـ PDF، جرب تاني.');
-    } finally {
-        btn.innerHTML = originalHTML;
-        btn.disabled = false;
-    }
-}
-
-// ==================== تصدير الإكسيل ====================
-function exportTableToExcel() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    const exportData = allScouts.filter(scout => {
-        const matchesTab = currentFilterStage === 'الكل' || scout.scout_group === currentFilterStage;
-        const searchString = `${scout.full_name} ${scout.scout_id} ${scout.personal_phone}`.toLowerCase();
-        return matchesTab && searchString.includes(searchTerm);
-    }).map(s => ({
-        'الكود الكشفي': s.scout_id,
-        'الاسم الرباعي': s.full_name,
-        'النوع': s.gender,
-        'المرحلة الدراسية': s.school_stage,
-        'الفرقة الكشفية': s.scout_group,
-        'رقم الموبايل': s.personal_phone,
-        'تليفون الأب': s.father_phone,
-        'أب الاعتراف': s.confession_father,
-        'العنوان': s.address
-    }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "الكشافة المفلترين");
-    XLSX.writeFile(wb, `كشف_كشافة_${currentFilterStage}.xlsx`);
-}
-
-// ==================== مسح كشاف ====================
-async function deleteScout(id) {
-    const scout = allScouts.find(s => s.scout_id === id);
-    if (confirm(`متأكد إنك عايز تمسح [ ${scout.full_name} ] من السيستم نهائياً؟`)) {
-        const { error } = await supabaseClient.from('scouts').delete().eq('scout_id', id);
-        if (!error) {
-            alert('تمام، الكشاف اتمسح من الداتابيز.');
-            fetchScouts();
-        } else {
-            alert('مش قادر يمسح، اتأكد من صلاحيات الداتابيز أو إعدادات الـ RLS.');
+            errorSpan.textContent = message;
+            errorSpan.style.display = 'block';
+            if (!firstErrorElement) firstErrorElement = inputEl;
         }
     }
+
+    document.querySelectorAll('.form-input').forEach(el => {
+        el.classList.remove('border-red-500', 'bg-red-50');
+        const errSpan = document.getElementById(el.id + '_error');
+        if (errSpan) errSpan.style.display = 'none';
+    });
+
+    const nameRegex = /^[\u0600-\u06FF\s]+$/;
+    const nameWords = data.full_name ? data.full_name.trim().split(/\s+/).filter(w => w.length > 0) : [];
+    if (!data.full_name) setError('formFullName', 'الاسم الرباعي مطلوب يا قائد.');
+    else if (!nameRegex.test(data.full_name)) setError('formFullName', 'الاسم لازم يتكتب بالعربي بس.');
+    else if (nameWords.length < 3) setError('formFullName', 'لازم تكتب الاسم ثلاثي أو رباعي على الأقل.');
+
+    const phoneRegex = /^01[0125]\d{8}$/;
+    if (!data.personal_phone) setError('formPersonalPhone', 'رقم موبايل الكشاف مطلوب.');
+    else if (!phoneRegex.test(data.personal_phone)) setError('formPersonalPhone', 'الرقم مش صحيح، لازم يكون 11 رقم بيبدأ بـ 01.');
+
+    if (data.father_phone && !phoneRegex.test(data.father_phone)) setError('formFatherPhone', 'رقم موبايل الأب مش صحيح.');
+    if (data.mother_phone && !phoneRegex.test(data.mother_phone)) setError('formMotherPhone', 'رقم موبايل الأم مش صحيح.');
+
+    if (data.personal_phone && data.father_phone && data.mother_phone) {
+        if (data.personal_phone === data.father_phone && data.personal_phone === data.mother_phone) {
+            setError('formPersonalPhone', 'الرقم متكرر 3 مرات! سيب خانة فاضية لو مفيش.');
+            setError('formFatherPhone', 'الرقم متكرر 3 مرات!');
+            setError('formMotherPhone', 'الرقم متكرر 3 مرات!');
+        }
+    }
+
+    if (data.address && !/\d/.test(data.address)) setError('formAddress', 'العنوان لازم يكون فيه رقم العمارة أو الشقة.');
+
+    if (data.birth_date) {
+        const age = new Date().getFullYear() - new Date(data.birth_date).getFullYear();
+        if (age < 4 || age > 25) setError('formBirthDate', `السن غير منطقي (${age} سنة).`);
+    }
+
+    if (data.siblings_count && data.sibling_order) {
+        if (parseInt(data.sibling_order) > parseInt(data.siblings_count)) {
+            setError('formSiblingOrder', 'الترتيب مينفعش يكون أكبر من العدد الكلي!');
+        }
+    }
+
+    if (!isValid && firstErrorElement) firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return isValid;
 }
 
-// ==================== فورم الإضافة ====================
+// ==================== بنجيب بيانات الفورم ====================
+function getFormData() {
+    return {
+        scout_id:           document.getElementById('formScoutId').value.trim(),
+        full_name:          document.getElementById('formFullName').value.trim(),
+        birth_date:         document.getElementById('formBirthDate').value.trim() || null,
+        gender:             document.getElementById('formGender').value || null,
+        personal_phone:     document.getElementById('formPersonalPhone').value.trim(),
+        father_phone:       document.getElementById('formFatherPhone').value.trim() || null,
+        mother_phone:       document.getElementById('formMotherPhone').value.trim() || null,
+        address:            document.getElementById('formAddress').value.trim() || null,
+        school_stage:       document.getElementById('formSchoolStage').value || null,
+        school_year:        document.getElementById('formSchoolYear').value.trim() || null,
+        personal_email:     document.getElementById('formPersonalEmail').value.trim() || null,
+        facebook_account:   document.getElementById('formFacebook').value.trim() || null,
+        instagram_account:  document.getElementById('formInstagram').value.trim() || null,
+        scout_uniform:      document.getElementById('formUniform').value.trim() || null,
+        confession_father:  document.getElementById('formConfessionFather').value.trim() || null,
+        confession_church:  document.getElementById('formConfessionChurch').value.trim() || null,
+        father_job:         document.getElementById('formFatherJob').value.trim() || null,
+        mother_job:         document.getElementById('formMotherJob').value.trim() || null,
+        siblings_count:     document.getElementById('formSiblingsCount').value.trim() ? parseInt(document.getElementById('formSiblingsCount').value.trim()) : null,
+        sibling_order:      document.getElementById('formSiblingOrder').value.trim() ? parseInt(document.getElementById('formSiblingOrder').value.trim()) : null,
+        has_diseases:       document.getElementById('formHasDiseases').value || 'لا',
+        diseases_details:   document.getElementById('formDiseasesDetails').value.trim() || null,
+        hobbies:            document.getElementById('formHobbies').value.trim() || null,
+        certificate:        document.getElementById('formCertificate').value.trim() || null,
+        photo_url:          document.getElementById('formPhotoUrl').value.trim() || null
+    };
+}
+
+// ==================== عمليات الإضافة والتعديل ====================
 function openAddModal() {
-    const newId = generateNextScoutId();
-    document.getElementById('formModalTitle').textContent = 'إضافة كشاف جديد';
-    document.getElementById('scoutForm').reset();
-    document.getElementById('formScoutId').value = newId;
-    document.getElementById('formScoutIdDisplay').textContent = newId;
-    document.getElementById('formSubmitBtn').textContent = 'حفظ الكشاف';
-    document.getElementById('formSubmitBtn').onclick = submitAddScout;
-    document.getElementById('formModal').classList.remove('hidden');
+    // Redirect to the full add form page instead of opening an in-page modal
+    window.location.href = 'form.html';
 }
 
 async function submitAddScout() {
     const data = getFormData();
-    if (!data.full_name || !data.personal_phone) {
-        alert('الاسم والموبايل مش ممكن يبقوا فاضيين!');
-        return;
-    }
+    if (!validateScoutData(data)) return;
+
+    if (currentUser.role === 'Master' || currentUser.role === 'General') data.status = 'مقبول';
+    else data.status = 'قيد الانتظار';
 
     const btn = document.getElementById('formSubmitBtn');
-    btn.disabled = true;
-    btn.textContent = 'بيتحفظ...';
+    btn.disabled = true; btn.textContent = 'بيتحفظ...';
 
     const { error } = await supabaseClient.from('scouts').insert([data]);
 
     if (!error) {
-        alert(`تمام! الكشاف اتضاف بالكود ${data.scout_id}`);
+        alert(data.status === 'قيد الانتظار' ? `تم تسجيل الكشاف وراح لصفحة الطلبات.` : `الكشاف اتضاف علطول.`);
         closeModal('formModal');
         fetchScouts();
     } else {
-        console.error(error);
-        alert('في مشكلة في الحفظ، اتأكد من الداتابيز.');
+        alert('مشكلة في الداتابيز: ' + error.message);
     }
-
-    btn.disabled = false;
-    btn.textContent = 'حفظ الكشاف';
+    btn.disabled = false; btn.textContent = 'حفظ الكشاف';
 }
 
-// ==================== فورم التعديل ====================
 function openEditModal(id) {
     const scout = allScouts.find(s => s.scout_id === id);
     if (!scout) return;
 
     document.getElementById('formModalTitle').textContent = 'تعديل بيانات كشاف';
+    document.querySelectorAll('[id$="_error"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.form-input').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
     fillFormWithScout(scout);
     document.getElementById('formSubmitBtn').textContent = 'حفظ التعديلات';
     document.getElementById('formSubmitBtn').onclick = () => submitEditScout(id);
@@ -341,63 +366,23 @@ function openEditModal(id) {
 
 async function submitEditScout(id) {
     const data = getFormData();
-    if (!data.full_name || !data.personal_phone) {
-        alert('الاسم والموبايل مش ممكن يبقوا فاضيين!');
-        return;
-    }
+    if (!validateScoutData(data)) return;
 
     const btn = document.getElementById('formSubmitBtn');
-    btn.disabled = true;
-    btn.textContent = 'بيتحفظ...';
+    btn.disabled = true; btn.textContent = 'بيتحفظ...';
 
     const { error } = await supabaseClient.from('scouts').update(data).eq('scout_id', id);
 
     if (!error) {
-        alert('تمام! البيانات اتعدلت.');
+        alert('البيانات اتعدلت.');
         closeModal('formModal');
         fetchScouts();
     } else {
-        console.error(error);
-        alert('في مشكلة في التعديل، اتأكد من الداتابيز.');
+        alert('مشكلة في التعديل: ' + error.message);
     }
-
-    btn.disabled = false;
-    btn.textContent = 'حفظ التعديلات';
+    btn.disabled = false; btn.textContent = 'حفظ التعديلات';
 }
 
-// ==================== بنجيب بيانات الفورم ====================
-function getFormData() {
-    return {
-        scout_id:           document.getElementById('formScoutId').value.trim(),
-        full_name:          document.getElementById('formFullName').value.trim(),
-        birth_date:         document.getElementById('formBirthDate').value.trim(),
-        gender:             document.getElementById('formGender').value,
-        personal_phone:     document.getElementById('formPersonalPhone').value.trim(),
-        father_phone:       document.getElementById('formFatherPhone').value.trim(),
-        mother_phone:       document.getElementById('formMotherPhone').value.trim(),
-        address:            document.getElementById('formAddress').value.trim(),
-        school_stage:       document.getElementById('formSchoolStage').value,
-        school_year:        document.getElementById('formSchoolYear').value.trim(),
-        personal_email:     document.getElementById('formPersonalEmail').value.trim(),
-        facebook_account:   document.getElementById('formFacebook').value.trim(),
-        instagram_account:  document.getElementById('formInstagram').value.trim(),
-        scout_uniform:      document.getElementById('formUniform').value.trim(),
-        confession_father:  document.getElementById('formConfessionFather').value.trim(),
-        confession_church:  document.getElementById('formConfessionChurch').value.trim(),
-        father_job:         document.getElementById('formFatherJob').value.trim(),
-        mother_job:         document.getElementById('formMotherJob').value.trim(),
-        siblings_count:     document.getElementById('formSiblingsCount').value.trim(),
-        sibling_order:      document.getElementById('formSiblingOrder').value.trim(),
-        has_diseases:       document.getElementById('formHasDiseases').value,
-        diseases_details:   document.getElementById('formDiseasesDetails').value.trim(),
-        hobbies:            document.getElementById('formHobbies').value.trim(),
-        certificate:        document.getElementById('formCertificate').value.trim(),
-        photo_url:          document.getElementById('formPhotoUrl').value.trim(),
-        mobile_check_status: document.getElementById('formMobileStatus').value.trim(),
-    };
-}
-
-// ==================== بنملي الفورم ببيانات الكشاف ====================
 function fillFormWithScout(scout) {
     document.getElementById('formScoutId').value          = scout.scout_id || '';
     document.getElementById('formScoutIdDisplay').textContent = scout.scout_id || '';
@@ -425,8 +410,11 @@ function fillFormWithScout(scout) {
     document.getElementById('formHobbies').value          = scout.hobbies || '';
     document.getElementById('formCertificate').value      = scout.certificate || '';
     document.getElementById('formPhotoUrl').value         = scout.photo_url || '';
-    document.getElementById('formMobileStatus').value     = scout.mobile_check_status || '';
 }
 
-// ==================== يلا نشغل السيستم ====================
-fetchScouts();
+async function deleteScout(id) {
+    if (confirm(`متأكد إنك عايز تمسح الكشاف من السيستم نهائياً؟`)) {
+        const { error } = await supabaseClient.from('scouts').delete().eq('scout_id', id);
+        if (!error) fetchScouts();
+    }
+}

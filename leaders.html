@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <link rel="icon" type="image/png" href="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة القادة - Ava Kirolos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --gold:    #c9a84c;
+            --gold-lt: #e8d5a3;
+            --silver:  #c0c0c0;
+            --dark:    #0d0d0d;
+            --dark2:   #1a1a1a;
+            --dark3:   #242424;
+            --border:  rgba(201,168,76,0.25);
+            --red:     #8b1a1a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark);
+            color: var(--silver);
+        }
+
+        /* ===== Table card ===== */
+        .table-card {
+            background: var(--dark2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+        }
+        thead tr {
+            background: var(--dark3);
+            border-bottom: 1px solid var(--border);
+            color: var(--gold);
+        }
+        tbody tr {
+            border-bottom: 1px solid rgba(201,168,76,0.08);
+            transition: background 0.15s;
+        }
+        tbody tr:hover { background: rgba(201,168,76,0.05); }
+
+        /* ===== Buttons ===== */
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%);
+            color: #0d0d0d;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+        .btn-gold:hover { filter: brightness(1.15); transform: translateY(-1px); }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--silver);
+            transition: all 0.2s;
+        }
+        .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+        /* ===== Modals ===== */
+        .modal-bg { background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
+        .modal-box {
+            background: var(--dark2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid rgba(201,168,76,0.2);
+            border-radius: 8px;
+            background: var(--dark3);
+            color: #fff;
+            outline: none;
+        }
+        .form-input:focus { border-color: var(--gold); }
+        .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+        
+        .badge-role {
+            background: rgba(201,168,76,0.12);
+            color: var(--gold-lt);
+            border: 1px solid rgba(201,168,76,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="p-4 bg-[linear-gradient(135deg,var(--dark)_0%,var(--dark2)_100%)] border-b border-[var(--border)] flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <button onclick="window.location.href='home.html'" class="text-xl text-[var(--gold)] hover:text-white transition ml-2">
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <h1 class="text-lg font-bold text-white">إدارة قادة المجموعة</h1>
+        </div>
+        <button onclick="openAddLeaderModal()" class="btn-gold px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+            <i class="fa-solid fa-user-plus"></i> إضافة قائد جديد
+        </button>
+    </nav>
+
+    <div class="max-w-6xl mx-auto mt-6 px-4 mb-10">
+        <div class="table-card">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse whitespace-nowrap">
+                    <thead>
+                        <tr>
+                            <th class="p-4">الاسم بالكامل</th>
+                            <th class="p-4">اسم المستخدم (Username)</th>
+                            <th class="p-4">رقم الموبايل</th>
+                            <th class="p-4">الصلاحية (Role)</th>
+                            <th class="p-4">الفرقة المسؤولة</th>
+                            <th class="p-4 text-center">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadersTableBody">
+                        <tr>
+                            <td colspan="6" class="p-4 text-center text-gray-500">جاري تحميل بيانات القادة...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="leaderModal" class="modal-bg fixed inset-0 hidden flex items-center justify-center z-50 p-4">
+        <div class="modal-box w-full max-w-md p-6 relative">
+            <button onclick="closeModal()" class="absolute top-4 left-4 text-gray-500 hover:text-red-400 text-xl">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+            <h2 class="text-xl font-bold text-white mb-6 border-b pb-2 border-[var(--border)]" id="modalTitle">إضافة قائد جديد</h2>
+            
+            <form id="leaderForm" onsubmit="saveLeader(event)" class="space-y-4">
+                <input type="hidden" id="leaderId">
+                
+                <div>
+                    <label class="form-label">الاسم بالكامل *</label>
+                    <input type="text" id="leaderName" class="form-input" placeholder="اسم القائد المربع" required>
+                </div>
+                <div>
+                    <label class="form-label">رقم الموبايل</label>
+                    <input type="text" id="leaderPhone" class="form-input" dir="ltr" placeholder="01xxxxxxxxx">
+                </div>
+                <div>
+                    <label class="form-label">اسم المستخدم (Username) *</label>
+                    <input type="text" id="leaderUsername" class="form-input" placeholder="مثال: kirolos_99" required autocomplete="username">
+                </div>
+                <div>
+                    <label class="form-label">كلمة المرور *</label>
+                    <input type="text" id="leaderPassword" class="form-input" placeholder="باسوورد الدخول" required autocomplete="new-password">
+                </div>
+                <div>
+                    <label class="form-label">الصلاحية (Role) *</label>
+                    <select id="leaderRole" class="form-input" onchange="toggleTroopField()" required>
+                        <option value="TroopLeader">قائد فرقة (TroopLeader)</option>
+                        <option value="General">قائد عام / نائب (General)</option>
+                        <option value="Master">ماستر (Master)</option>
+                        <option value="Viewer">أب اعتراف / مشاهد (Viewer)</option>
+                    </select>
+                </div>
+                <div id="troopFieldContainer">
+                    <label class="form-label">الفرقة المسؤولة *</label>
+                    <select id="leaderTroop" class="form-input">
+                        <option value="براعم">براعم</option>
+                        <option value="أشبال">أشبال</option>
+                        <option value="زهرات">زهرات</option>
+                        <option value="كشاف مبتدئ">إعدادي ولاد (كشاف مبتدئ)</option>
+                        <option value="مرشدات">إعدادي بنات (مرشدات)</option>
+                        <option value="كشاف متقدم">ثانوي ولاد (كشاف متقدم)</option>
+                        <option value="رائدات">ثانوي بنات (رائدات)</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
+                    <button type="button" onclick="closeModal()" class="btn-outline px-4 py-2 rounded-lg text-sm">إلغاء</button>
+                    <button type="submit" id="saveBtn" class="btn-gold px-6 py-2 rounded-lg text-sm">حفظ البيانات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==================== إعدادات الاتصال بـ Supabase ====================
+        const SUPABASE_URL = 'https://xbdprjxvtwfieiqncbez.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // التحقق من صلاحية الماستر والقائد العام
+        const sessionData = localStorage.getItem('scout_leader_session');
+        const currentUser = sessionData ? JSON.parse(sessionData) : null;
+        
+        if (!currentUser || (currentUser.role !== 'Master' && currentUser.role !== 'General')) {
+            window.location.href = 'home.html'; // اطرده لو مش ماستر أو عام
+        }
+
+        // تحميل وعرض القادة عند فتح الصفحة
+        async function loadLeaders() {
+            const { data, error } = await supabaseClient.from('leaders').select('*').order('created_at', { ascending: true });
+            
+            if (error) {
+                console.error(error);
+                document.getElementById('leadersTableBody').innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">فشل تحميل البيانات من السيرفر.</td></tr>`;
+                return;
+            }
+
+            const tbody = document.getElementById('leadersTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(leader => {
+                const tr = document.createElement('tr');
+                
+                // ترجمة الرتبة لشكل عربي مفهوم
+                let roleArabic = leader.role === 'Master' ? 'ماستر' : leader.role === 'General' ? 'قائد عام' : leader.role === 'Viewer' ? 'مشاهد/أب كاهن' : 'قائد فرقة';
+                let troopDisplay = (leader.role === 'Master' || leader.role === 'General') ? 'كل المجموعات' : (leader.troop || '-');
+
+                // حماية حساب الماستر الأصلي من الحذف أو التعديل بواسطة الـ General
+                let actionsHtml = '';
+                if (leader.username === 'admin' && currentUser.role !== 'Master') {
+                    actionsHtml = `<span class="text-xs text-gray-600">محمي</span>`;
+                } else {
+                    actionsHtml = `
+                        <button onclick="openEditLeaderModal('${leader.id}', '${leader.full_name}', '${leader.username}', '${leader.password}', '${leader.role}', '${leader.troop}', '${leader.phone || ''}')" class="text-blue-400 hover:text-blue-300 ml-3" title="تعديل"><i class="fa-solid fa-user-gear"></i></button>
+                        <button onclick="deleteLeader('${leader.id}', '${leader.username}')" class="text-red-500 hover:text-red-400" title="حذف"><i class="fa-solid fa-user-xmark"></i></button>
+                    `;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-4 text-white font-medium">${leader.full_name}</td>
+                    <td class="p-4 font-mono text-gray-300">${leader.username}</td>
+                    <td class="p-4 font-mono text-gray-300" dir="ltr">${leader.phone || '-'}</td>
+                    <td class="p-4"><span class="badge-role">${roleArabic}</span></td>
+                    <td class="p-4 text-gray-400">${troopDisplay}</td>
+                    <td class="p-4 text-center">${actionsHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleTroopField() {
+            const role = document.getElementById('leaderRole').value;
+            const container = document.getElementById('troopFieldContainer');
+            if (role === 'Master' || role === 'General' || role === 'Viewer') {
+                container.style.display = 'none';
+            } else {
+                container.style.display = 'block';
+            }
+        }
+
+        function openAddLeaderModal() {
+            document.getElementById('leaderForm').reset();
+            document.getElementById('leaderId').value = '';
+            document.getElementById('modalTitle').textContent = 'إضافة قائد جديد';
+            document.getElementById('leaderUsername').disabled = false;
+            toggleTroopField();
+            document.getElementById('leaderModal').classList.remove('hidden');
+        }
+
+        function openEditLeaderModal(id, name, username, password, role, troop, phone) {
+            document.getElementById('leaderId').value = id;
+            document.getElementById('leaderName').value = name;
+            document.getElementById('leaderUsername').value = username;
+            document.getElementById('leaderUsername').disabled = true; // تثبيت اليوزر نيم لمنع اللخبطة
+            document.getElementById('leaderPassword').value = password;
+            document.getElementById('leaderRole').value = role;
+            document.getElementById('leaderPhone').value = phone;
+            toggleTroopField();
+            if (role === 'TroopLeader') {
+                document.getElementById('leaderTroop').value = troop;
+            }
+            document.getElementById('modalTitle').textContent = 'تعديل بيانات القائد';
+            document.getElementById('leaderModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('leaderModal').classList.add('hidden');
+        }
+
+        async function saveLeader(e) {
+            e.preventDefault();
+            const id = document.getElementById('leaderId').value;
+            const name = document.getElementById('leaderName').value.trim();
+            const username = document.getElementById('leaderUsername').value.trim();
+            const password = document.getElementById('leaderPassword').value.trim();
+            const role = document.getElementById('leaderRole').value;
+            const phone = document.getElementById('leaderPhone').value.trim();
+            let troop = document.getElementById('leaderTroop').value;
+
+            if (role === 'Master' || role === 'General' || role === 'Viewer') {
+                troop = 'الكل';
+            }
+
+            const leaderData = {
+                full_name: name,
+                username: username,
+                password: password,
+                role: role,
+                troop: troop,
+                phone: phone || null
+            };
+
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'جاري الحفظ...';
+
+            if (id) {
+                // تعديل قائد موجود
+                const { error } = await supabaseClient.from('leaders').update(leaderData).eq('id', id);
+                if (error) alert('حدث خطأ أثناء التعديل: ' + error.message);
+            } else {
+                // إضافة قائد جديد
+                const { error } = await supabaseClient.from('leaders').insert([leaderData]);
+                if (error) {
+                    if (error.code === '23505') alert('اسم المستخدم ده محجوز لقائد تاني، اختار اسم مستخدم مختلف!');
+                    else alert('حدث خطأ أثناء الإضافة: ' + error.message);
+                }
+            }
+
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'حفظ البيانات';
+            closeModal();
+            loadLeaders();
+        }
+
+        async function deleteLeader(id, username) {
+            if (username === 'admin') {
+                alert('لا يمكن حذف حساب الماستر الأساسي للسيستم!');
+                return;
+            }
+            if (confirm('هل أنت متأكد من حذف هذا القائد تماماً وسحب صلاحيات الدخول منه؟')) {
+                const { error } = await supabaseClient.from('leaders').delete().eq('id', id);
+                if (!error) loadLeaders();
+                else alert('فشل الحذف: ' + error.message);
+            }
+        }
+
+        // تشغيل التحميل التلقائي عند فتح الصفحة
+        loadLeaders();
+    </script>
+</body>
+</html>

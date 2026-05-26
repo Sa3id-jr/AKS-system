@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <link rel="icon" type="image/png" href="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إضافة كشاف جديد - Ava Kirolos</title>
@@ -20,94 +21,33 @@
             --red:     #8b1a1a;
             --border:  rgba(201,168,76,0.25);
         }
-
         * { box-sizing: border-box; }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--dark);
             color: var(--silver);
             padding: 20px;
         }
-
-        /* ===== Scrollbar ===== */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--dark2); }
         ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
 
-        /* ===== Container ===== */
-        .form-container {
-            background: var(--dark2);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            box-shadow: 0 8px 60px rgba(0,0,0,0.8);
-            max-width: 900px;
-            margin: 0 auto;
-            overflow: hidden;
-        }
-
-        /* ===== Header ===== */
-        .form-header {
-            border-bottom: 1px solid var(--border);
-            background: linear-gradient(135deg, var(--dark3), var(--dark2));
-            padding: 20px 24px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        /* ===== Buttons ===== */
-        .btn-gold {
-            background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%);
-            color: #0d0d0d;
-            font-weight: 700;
-            border: none;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
+        .form-container { background: var(--dark2); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 60px rgba(0,0,0,0.8); max-width: 900px; margin: 0 auto; overflow: hidden; }
+        .form-header { border-bottom: 1px solid var(--border); background: linear-gradient(135deg, var(--dark3), var(--dark2)); padding: 20px 24px; display: flex; align-items: center; gap: 16px; }
+        .btn-gold { background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%); color: #0d0d0d; font-weight: 700; border: none; transition: all 0.2s; cursor: pointer; }
         .btn-gold:hover { filter: brightness(1.15); transform: translateY(-1px); }
         .btn-gold:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-        /* ===== Form inputs ===== */
-        .form-input {
-            width: 100%;
-            padding: 0.6rem 0.85rem;
-            border: 1px solid rgba(201,168,76,0.2);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            outline: none;
-            background: var(--dark3);
-            color: var(--silver);
-            transition: border-color 0.15s;
-            /* السطر ده بيخلي نتيجة التقويم (النتيجة) تطلع شكلها غامق شيك */
-            color-scheme: dark; 
-        }
+        
+        .form-input { width: 100%; padding: 0.6rem 0.85rem; border: 1px solid rgba(201,168,76,0.2); border-radius: 8px; font-size: 0.9rem; outline: none; background: var(--dark3); color: var(--silver); transition: border-color 0.15s; color-scheme: dark; }
         .form-input::placeholder { color: #555; }
         .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,0.15); }
         .form-input option { background: var(--dark3); }
         .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
 
-        /* ===== Section headings ===== */
-        .section-heading {
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .section-heading.gold  { background: rgba(201,168,76,0.1);  color: var(--gold);   border-right: 3px solid var(--gold); }
-        .section-heading.red   { background: rgba(139,26,26,0.15);  color: #e57373;       border-right: 3px solid #e57373; }
-
-        /* ===== Gold divider ===== */
-        .gold-divider {
-            height: 1px;
-            background: linear-gradient(to left, transparent, var(--gold), transparent);
-            margin: 24px 0;
-        }
+        .section-heading { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; padding: 8px 12px; border-radius: 6px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .section-heading.gold  { background: rgba(201,168,76,0.1); color: var(--gold); border-right: 3px solid var(--gold); }
+        .section-heading.red   { background: rgba(139,26,26,0.15); color: #e57373; border-right: 3px solid #e57373; }
+        .gold-divider { height: 1px; background: linear-gradient(to left, transparent, var(--gold), transparent); margin: 24px 0; }
     </style>
 </head>
 <body>
@@ -123,18 +63,13 @@
         </div>
 
         <div class="p-6 md:p-8">
-            <form id="addScoutForm" onsubmit="return false;">
+            <form id="addScoutForm" onsubmit="submitScoutData(event); return false;">
                 <input type="hidden" id="formScoutId">
 
                 <div class="section-heading gold"><i class="fa-solid fa-circle-info"></i> البيانات الأساسية</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 mb-6">
                     <div><label class="form-label">الاسم الرباعي *</label><input id="formFullName" type="text" class="form-input" placeholder="الاسم الرباعي كامل"></div>
-                    
-                    <div>
-                        <label class="form-label">تاريخ الميلاد</label>
-                        <input id="formBirthDate" type="date" class="form-input">
-                    </div>
-                    
+                    <div><label class="form-label">تاريخ الميلاد</label><input id="formBirthDate" type="date" class="form-input"></div>
                     <div>
                         <label class="form-label">النوع</label>
                         <select id="formGender" class="form-input">
@@ -165,8 +100,8 @@
                     <div><label class="form-label">تليفون الأب</label><input id="formFatherPhone" type="text" class="form-input" dir="ltr" placeholder="01xxxxxxxxx"></div>
                     <div><label class="form-label">تليفون الأم</label><input id="formMotherPhone" type="text" class="form-input" dir="ltr" placeholder="01xxxxxxxxx"></div>
                     <div><label class="form-label">الإيميل الشخصي</label><input id="formPersonalEmail" type="email" class="form-input" dir="ltr" placeholder="example@gmail.com"></div>
-                    <div><label class="form-label">أكونت الفيسبوك</label><input id="formFacebook" type="text" class="form-input" placeholder="اسم الأكونت"></div>
-                    <div><label class="form-label">أكونت الإنستجرام</label><input id="formInstagram" type="text" class="form-input" placeholder="اسم الأكونت"></div>
+                    <div><label class="form-label">يوزر الفيسبوك</label><input id="formFacebook" type="text" class="form-input" placeholder="اسم الأكونت"></div>
+                    <div><label class="form-label">يوزر الإنستجرام</label><input id="formInstagram" type="text" class="form-input" placeholder="اسم الأكونت"></div>
                     <div class="sm:col-span-2 md:col-span-3"><label class="form-label">العنوان بالكامل</label><input id="formAddress" type="text" class="form-input" placeholder="رقم الشارع، الشارع، المنطقة"></div>
                 </div>
 
@@ -186,9 +121,8 @@
 
                 <div class="section-heading gold"><i class="fa-solid fa-campground"></i> بيانات كشفية</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 mb-6">
-                    <div><label class="form-label">الزي الكشفي المتوفر</label><input id="formUniform" type="text" class="form-input" placeholder="مثال: قميص، فولار"></div>
-                    <div><label class="form-label">حالة مراجعة الموبايل</label><input id="formMobileStatus" type="text" class="form-input" placeholder="مثال: ✅ Valid"></div>
-                    <div><label class="form-label">الهوايات والمهارات</label><input id="formHobbies" type="text" class="form-input" placeholder="مثال: رسم، كورة"></div>
+                    <div class="sm:col-span-2 md:col-span-1"><label class="form-label">الزي الكشفي المتوفر</label><input id="formUniform" type="text" class="form-input" placeholder="مثال: قميص، فولار"></div>
+                    <div class="sm:col-span-2 md:col-span-2"><label class="form-label">الهوايات والمهارات</label><input id="formHobbies" type="text" class="form-input" placeholder="مثال: رسم، كورة"></div>
                 </div>
 
                 <div class="gold-divider"></div>
@@ -217,7 +151,7 @@
                 </div>
 
                 <div class="flex justify-end pt-4" style="border-top: 1px solid var(--border);">
-                    <button id="formSubmitBtn" onclick="submitScoutData()" class="btn-gold px-8 py-3 rounded-lg text-lg flex items-center gap-2">
+                    <button type="submit" id="formSubmitBtn" class="btn-gold px-8 py-3 rounded-lg text-lg flex items-center gap-2">
                         <i class="fa-solid fa-cloud-arrow-up"></i> حفظ الكشاف
                     </button>
                 </div>
@@ -226,103 +160,164 @@
     </div>
 
     <script>
-        // ==================== إعدادات الاتصال بـ Supabase ====================
         const SUPABASE_URL = 'https://xbdprjxvtwfieiqncbez.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
-        
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ==================== توليد الكود بصمت في الخلفية ====================
         async function fetchNextScoutId() {
             const { data, error } = await supabaseClient.from('scouts').select('scout_id');
-            
             let nextId = 'A00001'; 
-            
             if (data && data.length > 0) {
                 const nums = data.map(s => {
                     const match = s.scout_id?.match(/^A(\d+)$/i);
                     return match ? parseInt(match[1], 10) : 0;
                 }).filter(n => !isNaN(n));
-
                 const maxNum = Math.max(...nums);
-                const nextNum = maxNum + 1;
-                const padded = String(nextNum).padStart(5, '0');
-                nextId = `A${padded}`;
+                nextId = `A${String(maxNum + 1).padStart(5, '0')}`;
             }
-
             document.getElementById('formScoutId').value = nextId;
             document.getElementById('formScoutIdDisplay').textContent = nextId;
         }
 
-        // ==================== حفظ البيانات (النسخة المتوافقة تماماً) ====================
-        async function submitScoutData() {
-            const fullName = document.getElementById('formFullName').value.trim();
-            const personalPhone = document.getElementById('formPersonalPhone').value.trim();
+        function validateScoutData(data) {
+            let isValid = true;
+            let firstErrorElement = null;
 
-            if (!fullName || !personalPhone) {
-                alert('يا قائد، الاسم الرباعي ورقم الموبايل لازم يتكتبوا!');
-                return;
+            function setError(inputId, message) {
+                isValid = false;
+                const inputEl = document.getElementById(inputId);
+                if (inputEl) {
+                    inputEl.classList.add('border-red-500', 'bg-red-50');
+                    let errorSpan = document.getElementById(inputId + '_error');
+                    if (!errorSpan) {
+                        errorSpan = document.createElement('span');
+                        errorSpan.id = inputId + '_error';
+                        errorSpan.className = 'text-red-500 text-xs mt-1 block font-bold';
+                        inputEl.parentNode.insertBefore(errorSpan, inputEl.nextSibling);
+                    }
+                    errorSpan.textContent = message;
+                    errorSpan.style.display = 'block';
+                    if (!firstErrorElement) firstErrorElement = inputEl;
+                }
             }
 
-            const btn = document.getElementById('formSubmitBtn');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+            document.querySelectorAll('.form-input').forEach(el => {
+                el.classList.remove('border-red-500', 'bg-red-50');
+                const errSpan = document.getElementById(el.id + '_error');
+                if (errSpan) errSpan.style.display = 'none';
+            });
 
-            const siblingsCountVal = document.getElementById('formSiblingsCount').value.trim();
-            const siblingOrderVal = document.getElementById('formSiblingOrder').value.trim();
+            const nameRegex = /^[\u0600-\u06FF\s]+$/;
+            const nameWords = data.full_name ? data.full_name.trim().split(/\s+/).filter(w => w.length > 0) : [];
+            if (!data.full_name) setError('formFullName', 'الاسم الرباعي مطلوب يا قائد.');
+            else if (!nameRegex.test(data.full_name)) setError('formFullName', 'الاسم لازم يتكتب بالعربي بس.');
+            else if (nameWords.length < 3) setError('formFullName', 'لازم تكتب الاسم ثلاثي أو رباعي على الأقل.');
 
-            const scoutData = {
-                scout_id: document.getElementById('formScoutId').value,
-                full_name: fullName,
-                
-                // الـ type="date" بيطلع التاريخ جاهز للداتا بيز YYYY-MM-DD
-                birth_date: document.getElementById('formBirthDate').value || null,
-                
-                gender: document.getElementById('formGender').value || null,
-                personal_phone: personalPhone,
-                father_phone: document.getElementById('formFatherPhone').value.trim() || null,
-                mother_phone: document.getElementById('formMotherPhone').value.trim() || null,
-                address: document.getElementById('formAddress').value.trim() || null,
-                school_stage: document.getElementById('formSchoolStage').value || null,
-                school_year: document.getElementById('formSchoolYear').value.trim() || null,
-                personal_email: document.getElementById('formPersonalEmail').value.trim() || null,
-                facebook_account: document.getElementById('formFacebook').value.trim() || null,
-                instagram_account: document.getElementById('formInstagram').value.trim() || null,
-                scout_uniform: document.getElementById('formUniform').value.trim() || null,
-                confession_father: document.getElementById('formConfessionFather').value.trim() || null,
-                confession_church: document.getElementById('formConfessionChurch').value.trim() || null,
-                father_job: document.getElementById('formFatherJob').value.trim() || null,
-                mother_job: document.getElementById('formMotherJob').value.trim() || null,
-                
-                siblings_count: siblingsCountVal ? parseInt(siblingsCountVal) : null,
-                sibling_order: siblingOrderVal ? parseInt(siblingOrderVal) : null,
-                
-                has_diseases: document.getElementById('formHasDiseases').value || 'لا',
-                diseases_details: document.getElementById('formDiseasesDetails').value.trim() || null,
-                hobbies: document.getElementById('formHobbies').value.trim() || null,
-                certificate: document.getElementById('formCertificate').value.trim() || null,
-                photo_url: document.getElementById('formPhotoUrl').value.trim() || null,
-                mobile_check_status: document.getElementById('formMobileStatus').value.trim() || null
-            };
+            const phoneRegex = /^01[0125]\d{8}$/;
+            if (!data.personal_phone) setError('formPersonalPhone', 'رقم موبايل الكشاف مطلوب.');
+            else if (!phoneRegex.test(data.personal_phone)) setError('formPersonalPhone', 'الرقم مش صحيح، لازم يكون 11 رقم بيبدأ بـ 01.');
 
-            const { error } = await supabaseClient.from('scouts').insert([scoutData]);
+            if (data.father_phone && !phoneRegex.test(data.father_phone)) setError('formFatherPhone', 'رقم موبايل الأب مش صحيح.');
+            if (data.mother_phone && !phoneRegex.test(data.mother_phone)) setError('formMotherPhone', 'رقم موبايل الأم مش صحيح.');
 
-            if (!error) {
-                alert('عاش يا قائد، الكشاف اتضاف للسيستم بنجاح!');
-                document.getElementById('addScoutForm').reset(); 
-                fetchNextScoutId(); 
-            } else {
-                console.error("إيرور الداتا بيز التفصيلي:", error);
-                alert(`حصلت مشكلة: ${error.message}`); 
+            if (data.personal_phone && data.father_phone && data.mother_phone) {
+                if (data.personal_phone === data.father_phone && data.personal_phone === data.mother_phone) {
+                    setError('formPersonalPhone', 'الرقم متكرر 3 مرات! سيب خانة فاضية لو مفيش.');
+                    setError('formFatherPhone', 'الرقم متكرر 3 مرات!');
+                    setError('formMotherPhone', 'الرقم متكرر 3 مرات!');
+                }
             }
 
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+            if (data.address && !/\d/.test(data.address)) setError('formAddress', 'العنوان لازم يكون فيه رقم العمارة أو الشقة.');
+
+            if (data.birth_date) {
+                const age = new Date().getFullYear() - new Date(data.birth_date).getFullYear();
+                if (age < 4 || age > 25) setError('formBirthDate', `السن غير منطقي (${age} سنة).`);
+            }
+
+            if (data.siblings_count && data.sibling_order) {
+                if (parseInt(data.sibling_order) > parseInt(data.siblings_count)) {
+                    setError('formSiblingOrder', 'الترتيب مينفعش يكون أكبر من العدد الكلي!');
+                }
+            }
+
+            if (!isValid && firstErrorElement) firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return isValid;
         }
 
-        // أول ما الصفحة تفتح
+        async function submitScoutData(event) {
+    // 1. منع الفورمة إنها تعمل refresh للصفحة (أهم خطوة)
+    event.preventDefault();
+
+    // 2. تحديد صلاحية القائد
+    const sessionRaw = localStorage.getItem('scout_leader_session');
+    const currentUser = sessionRaw ? JSON.parse(sessionRaw) : null;
+    const isAdmin = currentUser?.role === 'Master' || currentUser?.role === 'General';
+
+    // 3. تجميع البيانات
+    const scoutData = {
+        scout_id: document.getElementById('formScoutId').value.trim(),
+        full_name: document.getElementById('formFullName').value.trim(),
+        birth_date: document.getElementById('formBirthDate').value || null,
+        gender: document.getElementById('formGender').value || null,
+        personal_phone: document.getElementById('formPersonalPhone').value.trim(),
+        father_phone: document.getElementById('formFatherPhone').value.trim() || null,
+        mother_phone: document.getElementById('formMotherPhone').value.trim() || null,
+        address: document.getElementById('formAddress').value.trim() || null,
+        school_stage: document.getElementById('formSchoolStage').value || null,
+        school_year: document.getElementById('formSchoolYear').value.trim() || null,
+        personal_email: document.getElementById('formPersonalEmail').value.trim() || null,
+        facebook_account: document.getElementById('formFacebook').value.trim() || null,
+        instagram_account: document.getElementById('formInstagram').value.trim() || null,
+        scout_uniform: document.getElementById('formUniform').value.trim() || null,
+        confession_father: document.getElementById('formConfessionFather').value.trim() || null,
+        confession_church: document.getElementById('formConfessionChurch').value.trim() || null,
+        father_job: document.getElementById('formFatherJob').value.trim() || null,
+        mother_job: document.getElementById('formMotherJob').value.trim() || null,
+        siblings_count: document.getElementById('formSiblingsCount').value.trim() ? parseInt(document.getElementById('formSiblingsCount').value.trim()) : null,
+        sibling_order: document.getElementById('formSiblingOrder').value.trim() ? parseInt(document.getElementById('formSiblingOrder').value.trim()) : null,
+        has_diseases: document.getElementById('formHasDiseases').value || 'لا',
+        diseases_details: document.getElementById('formDiseasesDetails').value.trim() || null,
+        hobbies: document.getElementById('formHobbies').value.trim() || null,
+        certificate: document.getElementById('formCertificate').value.trim() || null,
+        photo_url: document.getElementById('formPhotoUrl').value.trim() || null,
+        status: isAdmin ? 'مقبول' : 'قيد الانتظار'
+    };
+
+    // 3. الفحص قبل ما نكلم السيرفر
+    if (!validateScoutData(scoutData)) {
+        console.log("Validation failed");
+        return;
+    }
+
+    // 4. إظهار حالة التحميل
+    const btn = document.getElementById('formSubmitBtn');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+
+    // 5. محاولة الحفظ (Try-Catch عشان نصطاد أي إيرور صامت)
+    try {
+        console.log("Sending data to Supabase:", scoutData);
+        const { data, error } = await supabaseClient.from('scouts').insert([scoutData]);
+        console.log("DATA:", data);
+        console.log("ERROR:", error);
+
+        if (error) throw error;
+
+        alert(isAdmin ? 'عاش يا قائد، الكشاف اتضاف للسيستم مباشرةً!' : 'عاش يا قائد، الطلب اتبعت ومستني موافقة الماستر!');
+        document.getElementById('addScoutForm').reset(); 
+        await fetchNextScoutId(); // تحديث الكود الجديد
+    } catch (err) {
+        console.error("Database Error:", err);
+        alert('في مشكلة في الحفظ: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
         fetchNextScoutId();
     </script>
 </body>
-</html>
+</html>لإ

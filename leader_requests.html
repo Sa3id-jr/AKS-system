@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <link rel="icon" type="image/png" href="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفعيل القادة - Ava Kirolos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root { --gold: #c9a84c; --dark: #0d0d0d; --dark2: #1a1a1a; --dark3: #242424; --border: rgba(201,168,76,0.25); --green: #2e7d32; --red: #c62828; }
+        body { background-color: var(--dark); color: #c0c0c0; font-family: 'Segoe UI', sans-serif; }
+        .table-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        thead tr { background: var(--dark3); border-bottom: 1px solid var(--border); color: var(--gold); }
+        tbody tr { border-bottom: 1px solid rgba(201,168,76,0.08); }
+        .form-select { background: var(--dark3); color: white; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; outline: none; }
+        .btn-action { padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; color: white; }
+        .btn-accept { background-color: var(--green); }
+        .btn-reject { background-color: var(--red); }
+    </style>
+</head>
+<body>
+
+    <nav class="p-4 bg-[linear-gradient(135deg,var(--dark)_0%,var(--dark2)_100%)] border-b border-[var(--border)] flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <button onclick="window.location.href='home.html'" class="text-xl text-[var(--gold)]"><i class="fa-solid fa-arrow-right"></i></button>
+            <h1 class="text-lg font-bold text-white">طلبات تسجيل القادة الجدد</h1>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto mt-6 px-4 mb-10">
+        <div class="table-card overflow-x-auto">
+            <table class="w-full text-right whitespace-nowrap">
+                <thead>
+                    <tr>
+                        <th class="p-4">الاسم بالكامل</th>
+                        <th class="p-4">يوزر الدخول</th>
+                        <th class="p-4">رقم الموبايل</th>
+                        <th class="p-4">تحديد الصلاحية</th>
+                        <th class="p-4">تحديد الفرقة</th>
+                        <th class="p-4 text-center">القرار</th>
+                    </tr>
+                </thead>
+                <tbody id="reqBody">
+                    <tr><td colspan="6" class="p-4 text-center">جاري التحميل...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://xbdprjxvtwfieiqncbez.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const sessionData = localStorage.getItem('scout_leader_session');
+        const currentUser = sessionData ? JSON.parse(sessionData) : null;
+        if (!currentUser || (currentUser.role !== 'Master' && currentUser.role !== 'General')) window.location.href = 'home.html';
+
+        async function loadRequests() {
+            const { data, error } = await supabaseClient.from('leaders').select('*').eq('status', 'قيد الانتظار');
+            const tbody = document.getElementById('reqBody');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">مفيش قادة جدد مستنيين تفعيل.</td></tr>`; return;
+            }
+
+            data.forEach(leader => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-4 text-white font-bold">${leader.full_name}</td>
+                    <td class="p-4 font-mono">${leader.username}</td>
+                    <td class="p-4 font-mono" dir="ltr">${leader.phone}</td>
+                    <td class="p-4">
+                        <select id="role_${leader.id}" class="form-select" onchange="toggleTroop('${leader.id}')">
+                            <option value="TroopLeader">قائد فرقة</option>
+                            <option value="General">قائد عام</option>
+                            <option value="Viewer">مشاهد</option>
+                        </select>
+                    </td>
+                    <td class="p-4">
+                        <select id="troop_${leader.id}" class="form-select">
+                            <option value="براعم">براعم</option><option value="أشبال">أشبال</option><option value="زهرات">زهرات</option>
+                            <option value="كشاف مبتدئ">إعدادي ولاد</option><option value="مرشدات">إعدادي بنات</option>
+                            <option value="كشاف متقدم">ثانوي ولاد</option><option value="رائدات">ثانوي بنات</option>
+                        </select>
+                    </td>
+                    <td class="p-4 text-center space-x-2 space-x-reverse">
+                        <button onclick="activateLeader('${leader.id}')" class="btn-action btn-accept"><i class="fa-solid fa-check"></i> تفعيل</button>
+                        <button onclick="rejectLeader('${leader.id}')" class="btn-action btn-reject"><i class="fa-solid fa-xmark"></i> رفض</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleTroop(id) {
+            const role = document.getElementById(`role_${id}`).value;
+            const troopSelect = document.getElementById(`troop_${id}`);
+            if (role === 'General' || role === 'Viewer') { troopSelect.style.display = 'none'; troopSelect.value = 'الكل'; }
+            else { troopSelect.style.display = 'inline-block'; }
+        }
+
+        async function activateLeader(id) {
+            const selectedRole = document.getElementById(`role_${id}`).value;
+            let selectedTroop = document.getElementById(`troop_${id}`).value;
+            if (selectedRole === 'General' || selectedRole === 'Viewer') selectedTroop = 'الكل';
+
+            const { error } = await supabaseClient.from('leaders')
+                .update({ role: selectedRole, troop: selectedTroop, status: 'نشط' })
+                .eq('id', id);
+
+            if (!error) loadRequests();
+            else alert('خطأ في التفعيل: ' + error.message);
+        }
+
+        async function rejectLeader(id) {
+            if (confirm('متأكد إنك عايز ترفض الحساب ده وتمسحه؟')) {
+                const { error } = await supabaseClient.from('leaders').delete().eq('id', id);
+                if (!error) loadRequests();
+            }
+        }
+
+        loadRequests();
+    </script>
+</body>
+</html>
