@@ -114,7 +114,10 @@ function applyRoleRestrictions() {
         const unifiedTab = getUnifiedGroupName(source);
         if (unifiedTab) allowedTabs.push(unifiedTab);
 
-        tabBtns.forEach(btn => { if (!allowedTabs.includes(btn.innerText.trim())) btn.style.display = 'none'; });
+        tabBtns.forEach(btn => { 
+            const stage = btn.getAttribute('data-stage');
+            if (!allowedTabs.includes(stage)) btn.style.display = 'none'; 
+        });
     }
 }
 
