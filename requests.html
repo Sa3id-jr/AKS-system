@@ -25,6 +25,8 @@
         .type-add { background: rgba(60,179,113,0.15); color: #3cb371; }
         .type-edit { background: rgba(201,168,76,0.15); color: var(--gold); }
         .type-delete { background: rgba(198,40,40,0.15); color: #ef5350; }
+        .comparison-row { background: var(--dark3) !important; }
+        .comparison-row:hover { background: var(--dark3) !important; }
     </style>
 </head>
 <body>
@@ -98,6 +100,11 @@
             const raw = (sector || '').trim();
             if (raw.startsWith('قطاع ')) return raw.replace('قطاع ', '').trim();
             return raw;
+        }
+
+        function getDbSchoolStage(sector) {
+            const key = normalizeSectorName(sector);
+            return sectorStageMap[key] || null;
         }
 
         function getSectorStage() {
@@ -187,14 +194,67 @@
             }
 
             const scoutIds = [...new Set(data.map(r => r.scout_id))];
-            const { data: scoutsData } = await supabaseClient.from('scouts').select('scout_id, full_name').in('scout_id', scoutIds);
-            const nameMap = {};
-            (scoutsData || []).forEach(s => { nameMap[s.scout_id] = s.full_name; });
+            const { data: scoutsData } = await supabaseClient.from('scouts').select('*').in('scout_id', scoutIds);
+            const scoutMap = {};
+            (scoutsData || []).forEach(s => { scoutMap[s.scout_id] = s; });
 
-            data.forEach(req => {
+            for (const req of data) {
                 const typeLabel = req.type === 'edit' ? 'تعديل' : 'حذف';
                 const typeClass = req.type === 'edit' ? 'type-edit' : 'type-delete';
-                const displayName = nameMap[req.scout_id] || req.scout_data?.full_name || req.scout_id;
+                const currentScout = scoutMap[req.scout_id];
+                const displayName = currentScout?.full_name || req.scout_data?.full_name || req.scout_id;
+
+                // لو تعديل، نعمل مقارنة بين القديم والجديد
+                let comparisonHtml = '';
+                if (req.type === 'edit' && currentScout && req.scout_data) {
+                    const newData = typeof req.scout_data === 'string' ? JSON.parse(req.scout_data) : req.scout_data;
+                    const changes = [];
+                    
+                    const fieldsToCompare = {
+                        'full_name': 'الاسم',
+                        'personal_phone': 'موبايل الكشاف',
+                        'father_phone': 'تليفون الأب',
+                        'mother_phone': 'تليفون الأم',
+                        'address': 'العنوان',
+                        'school_stage': 'المرحلة الدراسية',
+                        'school_year': 'السنة الدراسية',
+                        'confession_father': 'أب الاعتراف',
+                        'has_diseases': 'أمراض',
+                        'diseases_details': 'تفاصيل الصحة'
+                    };
+
+                    Object.keys(fieldsToCompare).forEach(key => {
+                        const oldVal = currentScout[key] || '—';
+                        const newVal = newData[key] || '—';
+                        if (oldVal !== newVal) {
+                            changes.push(`
+                                <div class="flex gap-2 items-start text-xs">
+                                    <span class="text-gray-500 min-w-[100px]">${fieldsToCompare[key]}:</span>
+                                    <span class="line-through text-red-400 flex-1">${oldVal}</span>
+                                    <i class="fa-solid fa-arrow-left text-[var(--gold)] text-[10px] mt-0.5"></i>
+                                    <span class="text-green-400 flex-1">${newVal}</span>
+                                </div>
+                            `);
+                        }
+                    });
+
+                    if (changes.length > 0) {
+                        comparisonHtml = `
+                            <tr>
+                                <td colspan="6" class="p-0">
+                                    <div class="p-4 bg-[var(--dark3)] border-t border-b border-[rgba(201,168,76,0.15)]">
+                                        <p class="text-xs font-bold text-[var(--gold)] mb-3 flex items-center gap-2">
+                                            <i class="fa-solid fa-code-compare"></i> التغييرات المطلوبة (${changes.length}):
+                                        </p>
+                                        <div class="space-y-2 max-h-60 overflow-y-auto">
+                                            ${changes.join('')}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
 
                 const tr = document.createElement('tr');
                 tr.id = `change-row-${req.id}`;
@@ -212,7 +272,15 @@
                 tr.querySelector('[data-action="approve-change"]').onclick = () => approveChangeRequest(req);
                 tr.querySelector('[data-action="reject-change"]').onclick = () => rejectChangeRequest(req.id);
                 tbody.appendChild(tr);
-            });
+
+                // لو في تغييرات، نضيف صف المقارنة
+                if (comparisonHtml) {
+                    const comparisonRow = document.createElement('tr');
+                    comparisonRow.className = 'comparison-row';
+                    comparisonRow.innerHTML = comparisonHtml;
+                    tbody.appendChild(comparisonRow);
+                }
+            }
             return data.length;
         }
 
