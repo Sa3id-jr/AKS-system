@@ -53,36 +53,69 @@ function normalizeScoutGroup(troop) {
     return normalizations[troop.trim()] || troop;
 }
 
+// تحويل اسم الفرقة/القطاع (قديم أو موحد) → school_stage في الداتابيز
+function getDbSchoolStage(troopOrSector) {
+    if (!troopOrSector) return null;
+    const raw = String(troopOrSector).trim();
+    const unified = normalizeScoutGroup(raw) || raw;
+    const map = {
+        'براعم': 'براعم',
+        'أشبال وزهرات': 'ابتدائي', 'أشبال': 'ابتدائي', 'زهرات': 'ابتدائي',
+        'مبتدئ ومرشدات': 'اعدادي', 'كشاف مبتدئ': 'اعدادي', 'مرشدات': 'اعدادي',
+        'متقدم ورائدات': 'ثانوي', 'كشاف متقدم': 'ثانوي', 'رائدات': 'ثانوي',
+        'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي'
+    };
+    return map[unified] || map[raw] || null;
+}
+
+// تحويل أي اسم → الاسم الموحد للواجهة (أشبال وزهرات، إلخ)
+function getUnifiedGroupName(troopOrSector) {
+    const dbStage = getDbSchoolStage(troopOrSector);
+    if (dbStage === 'براعم') return 'براعم';
+    if (dbStage === 'ابتدائي') return 'أشبال وزهرات';
+    if (dbStage === 'اعدادي') return 'مبتدئ ومرشدات';
+    if (dbStage === 'ثانوي') return 'متقدم ورائدات';
+    return normalizeScoutGroup(troopOrSector) || troopOrSector;
+}
+
+function getAllowedTroopNames(troopOrSector) {
+    const unified = getUnifiedGroupName(troopOrSector);
+    const map = {
+        'براعم': ['براعم'],
+        'أشبال وزهرات': ['أشبال وزهرات', 'أشبال', 'زهرات'],
+        'مبتدئ ومرشدات': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'],
+        'متقدم ورائدات': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات']
+    };
+    return map[unified] || (troopOrSector ? [troopOrSector] : []);
+}
+
 function applyRoleRestrictions() {
     if (currentUser.role === 'Viewer') {
         const addBtn = document.getElementById('addScoutBtn'); 
         if (addBtn) addBtn.style.display = 'none';
     }
     if (currentUser.role === 'TroopLeader' || currentUser.role === 'SectorLeader') {
-        const tabBtns = document.querySelectorAll('.tab-btn'); 
-        let allowedTabs = ['الكل'];
-        const targetGroup = currentUser.role === 'TroopLeader' ? currentUser.troop : currentUser.sector;
-        allowedTabs.push(targetGroup);
-        
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const allowedTabs = ['الكل'];
+        const source = currentUser.role === 'TroopLeader' ? currentUser.troop : currentUser.sector;
+        const unifiedTab = getUnifiedGroupName(source);
+        if (unifiedTab) allowedTabs.push(unifiedTab);
+
         tabBtns.forEach(btn => { if (!allowedTabs.includes(btn.innerText.trim())) btn.style.display = 'none'; });
     }
 }
 
-// استبدل دالة fetchScouts القديمة بالكامل بدي:
 async function fetchScouts() {
-    // كل القادة (قطاع أو فرقة) يشوفوا الكشافين المقبولين بس
-    // الماستر والقائد العام يشوفوا الكل
     let query = supabaseClient.from('scouts').select('*').order('scout_id', { ascending: true });
     
     if (currentUser.role !== 'Master' && currentUser.role !== 'General') {
         query = query.eq('status', 'مقبول');
     }
 
-    // هنا التوحيد: قائد القطاع وقائد الفرقة بيشوفوا نفس نطاق المرحلة الدراسية
     if (currentUser.role === 'TroopLeader' || currentUser.role === 'SectorLeader') {
-        const stageMap = { 'براعم': 'براعم', 'أشبال وزهرات': 'ابتدائي', 'مبتدئ ومرشدات': 'اعدادي', 'متقدم ورائدات': 'ثانوي' };
-        const userStage = currentUser.troop || currentUser.sector;
-        query = query.eq('school_stage', stageMap[userStage] || userStage);
+        const source = currentUser.troop || currentUser.sector;
+        const dbStage = getDbSchoolStage(source);
+        if (dbStage) query = query.eq('school_stage', dbStage);
     }
 
     const { data, error } = await query;
@@ -106,8 +139,10 @@ function renderTable() {
         const imgSrc = getDirectDriveLink(scout.photo_url);
         const tr = document.createElement('tr');
         let actionsHtml = `<button onclick="viewProfile('${scout.scout_id}')" class="text-blue-600 hover:text-blue-900 text-lg"><i class="fa-solid fa-address-card"></i></button>`;
-        if (currentUser.role !== 'Viewer') actionsHtml += `<button onclick="openEditModal('${scout.scout_id}')" class="text-green-600 hover:text-green-900 text-lg ml-3 mr-3"><i class="fa-solid fa-user-pen"></i></button>`;
-        if (['Master', 'General', 'SectorLeader'].includes(currentUser.role)) actionsHtml += `<button onclick="deleteScout('${scout.scout_id}')" class="text-red-500 hover:text-red-800 text-lg"><i class="fa-solid fa-user-minus"></i></button>`;
+        if (canManageScoutsDirect || isTroopLeaderScout) {
+            actionsHtml += `<button onclick="openEditModal('${scout.scout_id}')" class="text-green-600 hover:text-green-900 text-lg ml-3 mr-3"><i class="fa-solid fa-user-pen"></i></button>`;
+            actionsHtml += `<button onclick="deleteScout('${scout.scout_id}')" class="text-red-500 hover:text-red-800 text-lg"><i class="fa-solid fa-user-minus"></i></button>`;
+        }
         tr.innerHTML = `
             <td class="p-4"><img src="${imgSrc}" class="w-11 h-11 rounded-full object-cover cursor-pointer border border-gray-600" onclick="openImagePreview('${imgSrc}')"></td>
             <td class="p-4 font-bold text-[var(--gold)]">${scout.scout_id}</td>
@@ -165,26 +200,71 @@ function validateScoutData(data) {
     else if (!phoneRegex.test(data.personal_phone)) setError('formPersonalPhone', 'الرقم مش صحيح، لازم 11 رقم بيبدأ بـ 01.');
     if (data.father_phone && !phoneRegex.test(data.father_phone)) setError('formFatherPhone', 'رقم تليفون الأب مش صحيح.');
     if (data.mother_phone && !phoneRegex.test(data.mother_phone)) setError('formMotherPhone', 'رقم تليفون الأم مش صحيح.');
+
+    if (data.personal_phone && data.father_phone && data.mother_phone) {
+        if (data.personal_phone === data.father_phone && data.personal_phone === data.mother_phone) {
+            setError('formPersonalPhone', 'الرقم متكرر 3 مرات! سيب خانة فاضية لو مفيش.');
+            setError('formFatherPhone', 'الرقم متكرر 3 مرات!');
+            setError('formMotherPhone', 'الرقم متكرر 3 مرات!');
+        }
+    }
+
+    if (data.address && !/\d/.test(data.address)) setError('formAddress', 'العنوان لازم يكون فيه رقم العمارة أو الشقة.');
+
+    if (data.birth_date) {
+        const age = new Date().getFullYear() - new Date(data.birth_date).getFullYear();
+        if (age < 4 || age > 25) setError('formBirthDate', `السن غير منطقي (${age} سنة).`);
+    }
+
+    if (data.siblings_count != null && data.sibling_order != null && data.sibling_order > data.siblings_count) {
+        setError('formSiblingOrder', 'الترتيب مينفعش يكون أكبر من العدد الكلي!');
+    }
+
     return isValid;
 }
 
 // دالة التعديل
 async function submitEditScout(id) {
     const data = getFormData();
+
+    if (isTroopLeaderScout) {
+        data.school_stage = getDbSchoolStage(currentUser.troop) || data.school_stage;
+    }
+
     if (!validateScoutData(data)) return;
 
     const btn = document.getElementById('formSubmitBtn');
-    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> بيتحفظ...';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
 
-    const { error } = await supabaseClient.from('scouts').update(data).eq('scout_id', id);
-    if (!error) {
-        alert('البيانات اتعدلت بنجاح.');
+    try {
+        if (isTroopLeaderScout) {
+            const scout = allScouts.find(s => s.scout_id === id);
+            const { error } = await supabaseClient.from('scout_requests').insert([{
+                scout_id: id,
+                type: 'edit',
+                scout_data: data,
+                school_stage: scout?.school_stage || data.school_stage,
+                requested_by: currentUser.username,
+                status: 'pending'
+            }]);
+            if (error) throw error;
+            alert('تم إرسال طلب التعديل لقائد القطاع / الماستر للموافقة.');
+        } else {
+            const { error } = await supabaseClient.from('scouts').update(data).eq('scout_id', id);
+            if (error) throw error;
+            alert('البيانات اتعدلت بنجاح.');
+        }
         closeModal('formModal');
         fetchScouts();
-    } else {
-        alert('مشكلة في التعديل: ' + error.message);
+    } catch (err) {
+        alert('مشكلة: ' + (err.message || err));
     }
-    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ';
+
+    btn.disabled = false;
+    btn.innerHTML = isTroopLeaderScout
+        ? '<i class="fa-solid fa-paper-plane"></i> إرسال طلب تعديل'
+        : '<i class="fa-solid fa-floppy-disk"></i> حفظ';
 }
 
 // ==================== البروفايل الكامل بالتقييمات والجراف ====================
@@ -277,6 +357,59 @@ async function viewProfile(id) {
 function openImagePreview(src) { document.getElementById('fullSizeImage').src = src; document.getElementById('imageModal').classList.remove('hidden'); }
 function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
 
+// ==================== دالة تصدير PDF المعدلة والمضمونة ====================
+async function exportProfileToPDF() {
+    const printArea = document.getElementById("printProfileArea");
+    if (!printArea) return alert('البروفايل مش مفتوح!');
+    
+    // زرار التحميل بيقلب Loading
+    const pdfBtn = document.querySelector('.btn-danger');
+    let originalText = '';
+    if (pdfBtn) {
+        originalText = pdfBtn.innerHTML;
+        pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التجهيز...';
+        pdfBtn.disabled = true;
+    }
+
+    try {
+        // ننتظر تحميل الخطوط العربية قبل الالتقاط
+        await document.fonts.ready;
+
+        // بنخلي الجراف والألوان تظهر بجودة عالية
+        const canvas = await html2canvas(printArea, { 
+            scale: 2, 
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: '#1a1a1a', // لون خلفية المودال
+            onclone: (clonedDoc) => {
+                // نضمن إن الخط العربي متطبق على النسخة المنسوخة
+                clonedDoc.body.style.fontFamily = "'Cairo', 'Segoe UI', sans-serif";
+            }
+        });
+        
+        const imgData = canvas.toDataURL("image/jpeg", 1.0);
+        const { jsPDF } = window.jspdf;
+        
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+        
+        const scoutName = document.getElementById("modalName").textContent || "Profile";
+        pdf.save(`Scout_${scoutName}.pdf`);
+        
+    } catch (err) {
+        console.error("PDF Export Error:", err);
+        alert("فشل التصدير! اتأكد إنك فاتح من متصفح كروم أو سفاري.");
+    } finally {
+        if (pdfBtn) {
+            pdfBtn.innerHTML = originalText;
+            pdfBtn.disabled = false;
+        }
+    }
+}
+
 // ==================== الحسابات والترتيب العام للوحة التحكم ====================
 async function calculateRankings() {
     const rankBody = document.getElementById('rankTableBody');
@@ -319,3 +452,140 @@ async function calculateRankings() {
         rankBody.innerHTML += `<tr class="${index < 3 ? 'bg-[rgba(201,168,76,0.05)]' : ''}"><td class="p-4 text-center">${rankMedal}</td><td class="p-4 font-bold text-white">${r.name}</td><td class="p-4 text-gray-400">${r.group || '-'}</td><td class="p-4 text-center font-mono font-bold ${percColor}">${r.percentage}%</td><td class="p-4 text-center font-bold text-[var(--gold)] text-lg">${r.points}</td></tr>`;
     });
 }
+
+let currentEditingScoutId = null;
+const canManageScoutsDirect = ['SectorLeader', 'Master', 'General'].includes(currentUser.role);
+const isTroopLeaderScout = currentUser.role === 'TroopLeader';
+
+function readInputValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const raw = (el.value || '').trim();
+    return raw || null;
+}
+
+function readInputNumber(id) {
+    const raw = readInputValue(id);
+    if (!raw) return null;
+    const n = parseInt(raw, 10);
+    return isNaN(n) ? null : n;
+}
+
+function setInputValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value || '';
+}
+
+function getFormData() {
+    return {
+        full_name: readInputValue('formFullName'),
+        birth_date: readInputValue('formBirthDate'),
+        gender: readInputValue('formGender'),
+        personal_phone: readInputValue('formPersonalPhone'),
+        father_phone: readInputValue('formFatherPhone'),
+        mother_phone: readInputValue('formMotherPhone'),
+        address: readInputValue('formAddress'),
+        school_stage: readInputValue('formSchoolStage'),
+        school_year: readInputValue('formSchoolYear'),
+        certificate: readInputValue('formCertificate'),
+        personal_email: readInputValue('formPersonalEmail'),
+        facebook_account: readInputValue('formFacebook'),
+        instagram_account: readInputValue('formInstagram'),
+        scout_uniform: readInputValue('formUniform'),
+        confession_father: readInputValue('formConfessionFather'),
+        confession_church: readInputValue('formConfessionChurch'),
+        father_job: readInputValue('formFatherJob'),
+        mother_job: readInputValue('formMotherJob'),
+        siblings_count: readInputNumber('formSiblingsCount'),
+        sibling_order: readInputNumber('formSiblingOrder'),
+        has_diseases: readInputValue('formHasDiseases') || 'لا',
+        diseases_details: readInputValue('formDiseasesDetails'),
+        hobbies: readInputValue('formHobbies'),
+        photo_url: readInputValue('formPhotoUrl')
+    };
+}
+
+function openEditModal(id) {
+    const scout = allScouts.find(s => s.scout_id === id);
+    if (!scout) return;
+
+    currentEditingScoutId = id;
+    const title = document.getElementById('formModalTitle');
+    if (title) title.textContent = `تعديل بيانات: ${scout.full_name}`;
+
+    const submitBtn = document.getElementById('formSubmitBtn');
+    if (submitBtn) {
+        submitBtn.innerHTML = isTroopLeaderScout
+            ? '<i class="fa-solid fa-paper-plane"></i> إرسال طلب تعديل'
+            : '<i class="fa-solid fa-floppy-disk"></i> حفظ';
+    }
+
+    setInputValue('formScoutId', scout.scout_id);
+    const idDisplay = document.getElementById('formScoutIdDisplay');
+    if (idDisplay) idDisplay.textContent = scout.scout_id;
+
+    setInputValue('formFullName', scout.full_name);
+    setInputValue('formBirthDate', scout.birth_date);
+    setInputValue('formGender', scout.gender);
+    setInputValue('formSchoolStage', scout.school_stage);
+    setInputValue('formSchoolYear', scout.school_year);
+    setInputValue('formCertificate', scout.certificate);
+    setInputValue('formPersonalPhone', scout.personal_phone);
+    setInputValue('formFatherPhone', scout.father_phone);
+    setInputValue('formMotherPhone', scout.mother_phone);
+    setInputValue('formPersonalEmail', scout.personal_email);
+    setInputValue('formFacebook', scout.facebook_account);
+    setInputValue('formInstagram', scout.instagram_account);
+    setInputValue('formAddress', scout.address);
+    setInputValue('formFatherJob', scout.father_job);
+    setInputValue('formMotherJob', scout.mother_job);
+    setInputValue('formSiblingsCount', scout.siblings_count);
+    setInputValue('formSiblingOrder', scout.sibling_order);
+    setInputValue('formConfessionFather', scout.confession_father);
+    setInputValue('formConfessionChurch', scout.confession_church);
+    setInputValue('formUniform', scout.scout_uniform);
+    setInputValue('formHobbies', scout.hobbies);
+    setInputValue('formHasDiseases', scout.has_diseases || 'لا');
+    setInputValue('formDiseasesDetails', scout.diseases_details);
+    setInputValue('formPhotoUrl', scout.photo_url);
+
+    document.getElementById('formModal')?.classList.remove('hidden');
+}
+
+async function deleteScout(id) {
+    if (!canManageScoutsDirect && !isTroopLeaderScout) return;
+
+    const scout = allScouts.find(s => s.scout_id === id);
+    const msg = isTroopLeaderScout
+        ? 'هيتبعت طلب حذف للموافقة من قائد القطاع / الماستر. متأكد؟'
+        : 'متأكد إنك عايز حذف الكشاف نهائيًا؟';
+    if (!confirm(msg)) return;
+
+    try {
+        if (isTroopLeaderScout) {
+            const { error } = await supabaseClient.from('scout_requests').insert([{
+                scout_id: id,
+                type: 'delete',
+                scout_data: { full_name: scout?.full_name || id },
+                school_stage: scout?.school_stage || null,
+                requested_by: currentUser.username,
+                status: 'pending'
+            }]);
+            if (error) throw error;
+            alert('تم إرسال طلب الحذف للمراجعة والموافقة.');
+        } else {
+            const { error } = await supabaseClient.from('scouts').delete().eq('scout_id', id);
+            if (error) throw error;
+            allScouts = allScouts.filter(s => s.scout_id !== id);
+            renderTable();
+            alert('تم حذف الكشاف.');
+        }
+    } catch (err) {
+        alert('مشكلة: ' + (err.message || err));
+    }
+}
+
+document.getElementById('formSubmitBtn')?.addEventListener('click', () => {
+    if (!currentEditingScoutId) return;
+    submitEditScout(currentEditingScoutId);
+});
