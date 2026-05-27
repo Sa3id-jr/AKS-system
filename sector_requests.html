@@ -45,6 +45,29 @@
         document.getElementById('sectorLabel').textContent = currentUser.role === 'SectorLeader' ? `قطاع: ${currentUser.sector || 'غير محدد'}` : 'كل القطاعات';
 
         const scoutCache = {};
+        function parseScoutIds(value) {
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'string') {
+                try { return JSON.parse(value || '[]'); } catch { return []; }
+            }
+            return [];
+        }
+
+        function normalizeSectorName(sector) {
+            const raw = (sector || '').trim();
+            if (raw.startsWith('قطاع ')) return raw.replace('قطاع ', '').trim();
+            return raw;
+        }
+
+        function getAllowedTroopsForSector(sector) {
+            const key = normalizeSectorName(sector);
+            if (key === 'براعم') return ['براعم'];
+            if (key === 'ابتدائي') return ['أشبال وزهرات', 'أشبال', 'زهرات'];
+            if (key === 'اعدادي') return ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'];
+            if (key === 'ثانوي') return ['متقدم ورائدات', 'كشاف متقدم', 'رائدات'];
+            return [];
+        }
+
         async function getScoutNames(ids) {
             const missing = ids.filter(id => !scoutCache[id]);
             if (missing.length > 0) {
@@ -58,20 +81,21 @@
             let query = supabaseClient.from('patrol_requests').select('*').eq('status', 'pending');
 
             if (currentUser.role === 'SectorLeader' && currentUser.sector) {
-                let allowedTroops = [];
-                if (currentUser.sector === 'براعم') allowedTroops = ['براعم'];
-                else if (currentUser.sector === 'ابتدائي') allowedTroops = ['أشبال وزهرات'];
-                else if (currentUser.sector === 'اعدادي') allowedTroops = ['مبتدئ ومرشدات'];
-                else if (currentUser.sector === 'ثانوي') allowedTroops = ['متقدم ورائدات'];
-                
-                query = query.in('troop', allowedTroops);
+                const allowedTroops = getAllowedTroopsForSector(currentUser.sector);
+                if (allowedTroops.length > 0) query = query.in('troop', allowedTroops);
             }
 
             const { data, error } = await query;
             const list = document.getElementById('requestsList');
             list.innerHTML = '';
 
-            if (error || data.length === 0) {
+            if (error) {
+                document.getElementById('pendingCount').textContent = '0';
+                list.innerHTML = `<div class="text-center py-20 text-red-400">مشكلة في تحميل الطلبات: ${error.message}</div>`;
+                return;
+            }
+
+            if (!data || data.length === 0) {
                 document.getElementById('pendingCount').textContent = '0';
                 list.innerHTML = `<div class="text-center py-20 text-gray-500">مفيش طلبات معلقة دلوقتي.</div>`;
                 return;
@@ -80,9 +104,9 @@
             document.getElementById('pendingCount').textContent = data.length;
 
             for (const req of data) {
-                const scoutIds = JSON.parse(req.scout_ids || '[]');
+                const scoutIds = parseScoutIds(req.scout_ids);
                 const names = await getScoutNames(scoutIds);
-                
+
                 const card = document.createElement('div');
                 card.className = 'request-card';
                 card.id = `req-${req.id}`;
@@ -92,50 +116,140 @@
                             <p class="font-bold text-white">${req.patrol_name} <span class="text-xs text-[var(--gold)] ml-2">(${req.troop})</span></p>
                             <p class="text-xs text-gray-500 mt-1">بواسطة: ${req.requested_by}</p>
                         </div>
-                        <span class="badge-type">${req.type === 'create' ? 'إنشاء جديد' : 'تعديل'}</span>
+                        <span class="badge-type">${req.type === 'create' ? 'إنشاء جديد' : (req.type === 'delete' ? 'حذف طليعة' : 'تعديل')}</span>
                     </div>
                     <div class="p-5">
                         <p class="text-xs text-[var(--gold)] mb-2">الكشافين المطلوبين (${names.length})</p>
-                        <div class="flex flex-wrap gap-2 text-sm text-gray-300 mb-4">${names.join(' ، ')}</div>
+                        <div class="flex flex-wrap gap-2 text-sm text-gray-300 mb-4">${names.length ? names.join(' ، ') : '—'}</div>
                         <div class="flex gap-3">
-                            <button onclick="approveRequest('${req.id}', '${req.type}', '${req.patrol_id || ''}')" class="btn-accept flex-1">موافقة وتنفيذ</button>
-                            <button onclick="rejectRequest('${req.id}')" class="btn-reject px-5"><i class="fa-solid fa-xmark"></i></button>
+                            <button type="button" class="btn-accept flex-1" data-action="approve">موافقة وتنفيذ</button>
+                            <button type="button" class="btn-reject px-5" data-action="reject"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     </div>
                 `;
+
+                card.querySelector('[data-action="approve"]').onclick = () => approveRequest(req.id);
+                card.querySelector('[data-action="reject"]').onclick = () => rejectRequest(req.id);
                 list.appendChild(card);
             }
         }
 
-        async function approveRequest(reqId, type, existingPatrolId) {
-            const { data: req } = await supabaseClient.from('patrol_requests').select('*').eq('id', reqId).single();
-            if (!req) return;
-
-            const scoutIds = JSON.parse(req.scout_ids || '[]');
-            let patrolId = existingPatrolId || null;
-
-            if (type === 'create') {
-                const { data: patrol } = await supabaseClient.from('patrols').insert([{ name: req.patrol_name, yell: req.patrol_yell, troop: req.troop }]).select();
-                patrolId = patrol[0].id;
-            } else if (type === 'edit' && patrolId) {
-                await supabaseClient.from('patrols').update({ name: req.patrol_name, yell: req.patrol_yell }).eq('id', patrolId);
-                await supabaseClient.from('scouts').update({ patrol_id: null }).eq('patrol_id', patrolId);
+        async function approveRequest(reqId) {
+            const card = document.getElementById(`req-${reqId}`);
+            const approveBtn = card?.querySelector('[data-action="approve"]');
+            if (approveBtn) {
+                approveBtn.disabled = true;
+                approveBtn.textContent = 'جاري التنفيذ...';
             }
 
-            if (scoutIds.length > 0 && patrolId) {
-                await supabaseClient.from('scouts').update({ patrol_id: patrolId }).in('scout_id', scoutIds);
-            }
+            try {
+                const { data: req, error: fetchError } = await supabaseClient
+                    .from('patrol_requests')
+                    .select('*')
+                    .eq('id', reqId)
+                    .single();
 
-            await supabaseClient.from('patrol_requests').update({ status: 'approved' }).eq('id', reqId);
-            document.getElementById(`req-${reqId}`).remove();
-            loadRequests();
+                if (fetchError || !req) throw new Error(fetchError?.message || 'تعذر قراءة الطلب');
+
+                const scoutIds = parseScoutIds(req.scout_ids);
+                let patrolId = req.patrol_id || null;
+
+                if (req.type === 'create') {
+                    const { data: patrolRows, error: insertError } = await supabaseClient
+                        .from('patrols')
+                        .insert([{
+                            name: req.patrol_name,
+                            yell: req.patrol_yell || null,
+                            troop: req.troop
+                        }])
+                        .select('id');
+
+                    if (insertError) throw insertError;
+                    if (!patrolRows?.length) throw new Error('لم يتم إنشاء الطليعة في قاعدة البيانات');
+                    patrolId = patrolRows[0].id;
+                } else if (req.type === 'edit') {
+                    if (!patrolId) throw new Error('طلب التعديل بدون رقم طليعة');
+
+                    const { error: updatePatrolError } = await supabaseClient
+                        .from('patrols')
+                        .update({
+                            name: req.patrol_name,
+                            yell: req.patrol_yell || null,
+                            troop: req.troop
+                        })
+                        .eq('id', patrolId);
+                    if (updatePatrolError) throw updatePatrolError;
+
+                    const { error: clearError } = await supabaseClient
+                        .from('scouts')
+                        .update({ patrol_id: null })
+                        .eq('patrol_id', patrolId);
+                    if (clearError) throw clearError;
+                } else if (req.type === 'delete') {
+                    if (!patrolId) throw new Error('طلب الحذف بدون رقم طليعة');
+
+                    const { error: clearError } = await supabaseClient
+                        .from('scouts')
+                        .update({ patrol_id: null })
+                        .eq('patrol_id', patrolId);
+                    if (clearError) throw clearError;
+
+                    const { error: delError } = await supabaseClient
+                        .from('patrols')
+                        .delete()
+                        .eq('id', patrolId);
+                    if (delError) throw delError;
+
+                    patrolId = null;
+                }
+
+                if (scoutIds.length > 0 && patrolId) {
+                    const { error: assignError } = await supabaseClient
+                        .from('scouts')
+                        .update({ patrol_id: patrolId })
+                        .in('scout_id', scoutIds);
+                    if (assignError) throw assignError;
+                }
+
+                const { error: statusError } = await supabaseClient
+                    .from('patrol_requests')
+                    .update({ status: 'approved' })
+                    .eq('id', reqId);
+                if (statusError) throw statusError;
+
+                alert('تمت الموافقة وتنفيذ الطلب بنجاح');
+                card?.remove();
+                loadRequests();
+            } catch (err) {
+                console.error('approveRequest failed:', err);
+                alert('فشل التنفيذ: ' + (err.message || err));
+                if (approveBtn) {
+                    approveBtn.disabled = false;
+                    approveBtn.textContent = 'موافقة وتنفيذ';
+                }
+            }
         }
 
         async function rejectRequest(reqId) {
             if (!confirm('متأكد إنك عايز ترفض الطلب ده؟')) return;
-            await supabaseClient.from('patrol_requests').update({ status: 'rejected' }).eq('id', reqId);
-            document.getElementById(`req-${reqId}`).remove();
-            loadRequests();
+
+            const card = document.getElementById(`req-${reqId}`);
+            const rejectBtn = card?.querySelector('[data-action="reject"]');
+            if (rejectBtn) rejectBtn.disabled = true;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('patrol_requests')
+                    .update({ status: 'rejected' })
+                    .eq('id', reqId);
+                if (error) throw error;
+
+                card?.remove();
+                loadRequests();
+            } catch (err) {
+                alert('فشل الرفض: ' + (err.message || err));
+                if (rejectBtn) rejectBtn.disabled = false;
+            }
         }
 
         loadRequests();
