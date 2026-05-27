@@ -19,6 +19,10 @@
         .patrol-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .modal-box { background: var(--dark2); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 500px; }
+        .btn-edit { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.35); }
+        .btn-delete { background: rgba(198,40,40,0.2); color: #ef5350; border: 1px solid rgba(198,40,40,0.4); }
+        .patrol-actions button { padding: 8px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; transition: 0.2s; }
+        .patrol-actions button:hover { filter: brightness(1.15); }
     </style>
 </head>
 <body>
@@ -57,29 +61,60 @@
 
         const currentUser = JSON.parse(localStorage.getItem('scout_leader_session') || 'null');
         if (!currentUser) window.location.href = 'index.html';
+
+        const isViewer = currentUser.role === 'Viewer';
+        const isTroopLeader = currentUser.role === 'TroopLeader';
+        const canManageDirect = ['SectorLeader', 'Master', 'General'].includes(currentUser.role);
+        const canRequestChanges = isTroopLeader;
+        const canEditOrDelete = canManageDirect || canRequestChanges;
+
         document.getElementById('troopLabel').textContent = `الفرقة: ${currentUser.troop || currentUser.sector || 'غير محدد'}`;
+
+        function normalizeSectorName(sector) {
+            const raw = (sector || '').trim();
+            if (raw.startsWith('قطاع ')) return raw.replace('قطاع ', '').trim();
+            return raw;
+        }
 
         async function loadPatrols() {
             const grid = document.getElementById('patrolsGrid');
             grid.innerHTML = '<p class="text-center text-gray-400 col-span-full">جاري التحميل...</p>';
 
-            // شيلنا ترتيب created_at عشان ميضربش إيرور
-            let query = supabaseClient.from('patrols').select('*, scouts(scout_id, full_name)');
+            // نجيب الطلايع الأول بدون embed عشان نتجنب تضارب العلاقات
+            let query = supabaseClient.from('patrols').select('*');
 
             if (currentUser.role !== 'Master' && currentUser.role !== 'General') {
-                const target = currentUser.role === 'SectorLeader' ? currentUser.sector : currentUser.troop;
-                query = query.eq('troop', target);
+                if (currentUser.role === 'SectorLeader') {
+                    const sectorTroopsMap = {
+                        'براعم': ['براعم'],
+                        'ابتدائي': ['أشبال وزهرات', 'أشبال', 'زهرات'],
+                        'اعدادي': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'],
+                        'ثانوي': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات']
+                    };
+                    const allowedTroops = sectorTroopsMap[normalizeSectorName(currentUser.sector)] || [];
+                    if (allowedTroops.length > 0) query = query.in('troop', allowedTroops);
+                } else {
+                    const allowedTroops = (() => {
+                        const raw = currentUser.troop || '';
+                        const norm = { 'أشبال': 'أشبال وزهرات', 'زهرات': 'أشبال وزهرات', 'كشاف مبتدئ': 'مبتدئ ومرشدات', 'مرشدات': 'مبتدئ ومرشدات', 'كشاف متقدم': 'متقدم ورائدات', 'رائدات': 'متقدم ورائدات' };
+                        const u = norm[raw.trim()] || raw.trim();
+                        const map = { 'براعم': ['براعم'], 'أشبال وزهرات': ['أشبال وزهرات', 'أشبال', 'زهرات'], 'مبتدئ ومرشدات': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'], 'متقدم ورائدات': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات'] };
+                        return map[u] || [raw];
+                    })();
+                    if (allowedTroops.length > 0) query = query.in('troop', allowedTroops);
+                }
             }
 
             const { data: patrols, error } = await query;
             grid.innerHTML = '';
 
-            // 1. دايمًا نرسم زرار الإضافة الأول (عشان يظهر حتى لو الطلايع فاضية)
-            const addCard = document.createElement('div');
-            addCard.className = 'add-card';
-            addCard.onclick = () => window.location.href = 'add-patrol.html';
-            addCard.innerHTML = `<div class="w-14 h-14 rounded-full bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.3)] flex items-center justify-center"><i class="fa-solid fa-plus text-[var(--gold)] text-xl"></i></div><div class="text-center"><p class="font-bold text-white">تأسيس طليعة جديدة</p></div>`;
-            grid.appendChild(addCard);
+            if (!isViewer) {
+                const addCard = document.createElement('div');
+                addCard.className = 'add-card';
+                addCard.onclick = () => window.location.href = 'add-patrol.html';
+                addCard.innerHTML = `<div class="w-14 h-14 rounded-full bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.3)] flex items-center justify-center"><i class="fa-solid fa-plus text-[var(--gold)] text-xl"></i></div><div class="text-center"><p class="font-bold text-white">تأسيس طليعة جديدة</p></div>`;
+                grid.appendChild(addCard);
+            }
 
             // 2. لو فيه إيرور، نطلعه عشان نبقى شايفينه مش صامت
             if (error) {
@@ -87,27 +122,108 @@
                 return; 
             }
 
+            const patrolIds = (patrols || []).map(p => p.id);
+            const scoutsByPatrol = {};
+            if (patrolIds.length > 0) {
+                const { data: membersData } = await supabaseClient
+                    .from('scouts')
+                    .select('scout_id, full_name, patrol_id')
+                    .in('patrol_id', patrolIds);
+                (membersData || []).forEach(m => {
+                    if (!scoutsByPatrol[m.patrol_id]) scoutsByPatrol[m.patrol_id] = [];
+                    scoutsByPatrol[m.patrol_id].push(m);
+                });
+            }
+
             document.getElementById('patrolCount').textContent = patrols.length;
 
-            // 3. رسم الطلايع لو موجودة
             patrols.forEach(p => {
-                const members = p.scouts || [];
+                const members = scoutsByPatrol[p.id] || [];
                 const avatarsHtml = members.slice(0, 4).map(m => `<div class="avatar-circle" title="${m.full_name}">${m.full_name[0]}</div>`).join('');
-                
+
+                const manageBtns = canEditOrDelete ? `
+                    <div class="flex gap-2 mb-2 patrol-actions">
+                        <button type="button" class="btn-edit flex-1" data-action="edit"><i class="fa-solid fa-pen ml-1"></i> تعديل</button>
+                        <button type="button" class="btn-delete flex-1" data-action="delete"><i class="fa-solid fa-trash ml-1"></i> حذف</button>
+                    </div>
+                ` : '';
+
                 const card = document.createElement('div');
                 card.className = 'patrol-card';
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
-                        <div class="flex-1 min-w-0 ml-3"><h3 class="font-bold text-white text-base truncate">${p.name}</h3><p class="text-xs text-gray-500 mt-1 italic">${p.yell || 'لا توجد صيحة'}</p></div>
+                        <div class="flex-1 min-w-0 ml-3">
+                            <h3 class="font-bold text-white text-base truncate">${p.name}</h3>
+                            <p class="text-xs text-gray-500 mt-1 italic">${p.yell || 'لا توجد صيحة'}</p>
+                            <p class="text-xs text-[var(--gold)] mt-1">${p.troop || ''}</p>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between mt-4"><div class="flex flex-row-reverse">${avatarsHtml}</div><span class="text-xs text-gray-500">${members.length} كشاف</span></div>
-                    <div class="flex gap-2 mt-4 pt-4 border-t border-[rgba(201,168,76,0.1)]">
-                        <button onclick="window.location.href='attendance_session.html?patrol_id=${p.id}&name=${encodeURIComponent(p.name)}'" class="flex-1 py-2 rounded-lg text-xs font-bold bg-[#2e7d32] text-white hover:brightness-110 transition">الحضور</button>
-                        <button onclick="viewMembers('${p.id}', '${p.name}', \`${p.yell || ''}\`)" class="flex-1 py-2 rounded-lg text-xs font-bold border border-[rgba(201,168,76,0.3)] text-[var(--gold)] hover:bg-[rgba(201,168,76,0.08)] transition">الأعضاء</button>
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="flex flex-row-reverse">${avatarsHtml}</div>
+                        <span class="text-xs text-gray-500">${members.length} كشاف</span>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-[rgba(201,168,76,0.1)]">
+                        ${manageBtns}
+                        <div class="flex gap-2">
+                            <button type="button" class="flex-1 py-2 rounded-lg text-xs font-bold bg-[#2e7d32] text-white hover:brightness-110 transition" data-action="attendance">الحضور</button>
+                            <button type="button" class="flex-1 py-2 rounded-lg text-xs font-bold border border-[rgba(201,168,76,0.3)] text-[var(--gold)] hover:bg-[rgba(201,168,76,0.08)] transition" data-action="members">الأعضاء</button>
+                        </div>
                     </div>
                 `;
+
+                card.querySelector('[data-action="attendance"]')?.addEventListener('click', () => {
+                    window.location.href = `attendance-session.html?patrol_id=${p.id}&name=${encodeURIComponent(p.name)}`;
+                });
+                card.querySelector('[data-action="members"]')?.addEventListener('click', () => viewMembers(p.id, p.name, p.yell || ''));
+                card.querySelector('[data-action="edit"]')?.addEventListener('click', () => {
+                    window.location.href = `add-patrol.html?edit=${p.id}`;
+                });
+                card.querySelector('[data-action="delete"]')?.addEventListener('click', () => handleDeletePatrol(p));
+
                 grid.appendChild(card);
             });
+        }
+
+        async function handleDeletePatrol(patrol) {
+            const msg = canManageDirect
+                ? 'متأكد من حذف الطليعة؟ الكشافين هيتفكوا منها.'
+                : 'هيتبعت طلب حذف لقائد القطاع / الماستر للموافقة. متأكد؟';
+            if (!confirm(msg)) return;
+
+            try {
+                if (canManageDirect) {
+                    const { error: clearError } = await supabaseClient
+                        .from('scouts')
+                        .update({ patrol_id: null })
+                        .eq('patrol_id', patrol.id);
+                    if (clearError) throw clearError;
+
+                    const { error: delError } = await supabaseClient
+                        .from('patrols')
+                        .delete()
+                        .eq('id', patrol.id);
+                    if (delError) throw delError;
+
+                    alert('تم حذف الطليعة بنجاح');
+                } else {
+                    const reqData = {
+                        type: 'delete',
+                        patrol_id: patrol.id,
+                        patrol_name: patrol.name,
+                        patrol_yell: patrol.yell || null,
+                        scout_ids: [],
+                        requested_by: currentUser.username,
+                        troop: patrol.troop,
+                        status: 'pending'
+                    };
+                    const { error: reqError } = await supabaseClient.from('patrol_requests').insert([reqData]);
+                    if (reqError) throw reqError;
+                    alert('تم إرسال طلب الحذف للمراجعة والموافقة.');
+                }
+                loadPatrols();
+            } catch (err) {
+                alert('فشل العملية: ' + (err.message || err));
+            }
         }
 
         function viewMembers(id, name, yell) {
