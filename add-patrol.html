@@ -36,7 +36,7 @@
 
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div id="requestBanner" class="request-banner hidden">
-            <i class="fa-solid fa-circle-info"></i><span>كقائد فرقة، طلبك هيتبعت للماستر للموافقة عليه أولاً.</span>
+            <i class="fa-solid fa-circle-info"></i><span>كقائد فرقة، طلبك (إنشاء أو تعديل) يُرسل لقائد القطاع والماستر/القائد العام للموافقة.</span>
         </div>
 
         <div class="section-card">
@@ -73,18 +73,24 @@
 
         const currentUser = JSON.parse(localStorage.getItem('scout_leader_session') || 'null');
         if (!currentUser) window.location.href = 'index.html';
+        if (currentUser.role === 'Viewer') {
+            alert('ليس لديك صلاحية تعديل أو إضافة طلايع.');
+            window.location.href = 'patrols.html';
+        }
 
         const isTroopLeader = currentUser.role === 'TroopLeader';
         const editId = new URLSearchParams(window.location.search).get('edit');
 
-        if (editId) document.getElementById('pageTitle').textContent = 'تعديل الطليعة';
-        
-        // ✅ صلاحيات إضافة الطليعة:
-        // - SectorLeader/Master/General: يضيفون الطليعة مباشرة (approved)
-        // - TroopLeader: يرسل طلب معلق (pending) ينتظر موافقة SectorLeader
+        if (editId) {
+            document.getElementById('pageTitle').textContent = 'تعديل الطليعة';
+            document.getElementById('pageSubtitle').textContent = 'عدّل الاسم والصيحة وأعضاء الطليعة';
+        }
+
         if (isTroopLeader) {
             document.getElementById('requestBanner').classList.remove('hidden');
-            document.getElementById('saveBtnText').textContent = 'إرسال طلب للموافقة';
+            document.getElementById('saveBtnText').textContent = editId ? 'إرسال طلب تعديل' : 'إرسال طلب للموافقة';
+        } else if (editId) {
+            document.getElementById('saveBtnText').textContent = 'حفظ التعديلات';
         }
 
         let allScouts = []; let selectedIds = new Set();
@@ -96,6 +102,46 @@
             'مبتدئ ومرشدات': 'اعدادي',
             'متقدم ورائدات': 'ثانوي'
         };
+        const sectorToTroopsMap = {
+            'براعم': ['براعم'],
+            'ابتدائي': ['أشبال وزهرات'],
+            'اعدادي': ['مبتدئ ومرشدات'],
+            'ثانوي': ['متقدم ورائدات']
+        };
+
+        function normalizeTroopName(troop) {
+            const map = {
+                'أشبال': 'أشبال وزهرات',
+                'زهرات': 'أشبال وزهرات',
+                'كشاف مبتدئ': 'مبتدئ ومرشدات',
+                'مرشدات': 'مبتدئ ومرشدات',
+                'كشاف متقدم': 'متقدم ورائدات',
+                'رائدات': 'متقدم ورائدات'
+            };
+            return map[(troop || '').trim()] || troop;
+        }
+
+        function normalizeSectorName(sector) {
+            const raw = (sector || '').trim();
+            if (raw.startsWith('قطاع ')) return raw.replace('قطاع ', '').trim();
+            return raw;
+        }
+
+        function getDbSchoolStage(troopOrSector) {
+            if (!troopOrSector) return null;
+            const unified = normalizeTroopName(String(troopOrSector).trim());
+            const map = {
+                'براعم': 'براعم', 'أشبال وزهرات': 'ابتدائي', 'مبتدئ ومرشدات': 'اعدادي', 'متقدم ورائدات': 'ثانوي',
+                'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي'
+            };
+            return map[unified] || map[String(troopOrSector).trim()] || null;
+        }
+
+        function getSectorMainTroop(sector) {
+            const key = normalizeSectorName(sector);
+            const troops = sectorToTroopsMap[key] || [];
+            return troops[0] || null;
+        }
 
         if (['SectorLeader', 'Master', 'General'].includes(currentUser.role)) {
             const container = document.getElementById('troopSelectorContainer');
@@ -103,7 +149,8 @@
             container.classList.remove('hidden');
             
             if (currentUser.role === 'SectorLeader') {
-                select.innerHTML = `<option value="${currentUser.sector}">${currentUser.sector}</option>`;
+                const sectorTroop = getSectorMainTroop(currentUser.sector) || 'أشبال وزهرات';
+                select.innerHTML = `<option value="${sectorTroop}">${sectorTroop}</option>`;
             } else {
                 select.innerHTML = `
                     <option value="براعم">براعم</option>
@@ -117,7 +164,12 @@
         async function loadScouts() {
             let query = supabaseClient.from('scouts').select('scout_id, full_name, school_stage, gender').eq('status', 'مقبول').order('full_name');
 
-            let targetGroup = currentUser.role === 'TroopLeader' ? currentUser.troop : (currentUser.role === 'SectorLeader' ? currentUser.sector : document.getElementById('patrolTroop')?.value || 'أشبال وزهرات');
+            let targetGroup = currentUser.role === 'TroopLeader'
+                ? currentUser.troop
+                : (currentUser.role === 'SectorLeader'
+                    ? getSectorMainTroop(currentUser.sector)
+                    : (document.getElementById('patrolTroop')?.value || 'أشبال وزهرات'));
+            targetGroup = normalizeTroopName(targetGroup || '');
 
             // لو في تعديل طليعة قديمة، نجيب القطاع بتاعها
             if (editId && ['Master', 'General'].includes(currentUser.role)) {
@@ -128,9 +180,9 @@
                 }
             }
 
-            const dbStage = stageMap[targetGroup];
+            const dbStage = stageMap[targetGroup] || getDbSchoolStage(targetGroup);
             if (dbStage) {
-                query = query.eq('school_stage', dbStage); // ده هيجيب كل اللي في ابتدائي مثلاً (ولاد وبنات)
+                query = query.eq('school_stage', dbStage);
             }
 
             if (editId) query = query.or(`patrol_id.is.null,patrol_id.eq.${editId}`);
@@ -187,25 +239,35 @@
             if (['SectorLeader', 'Master', 'General'].includes(currentUser.role)) {
                 targetTroop = document.getElementById('patrolTroop').value;
             }
+            targetTroop = normalizeTroopName(targetTroop);
+            if (!targetTroop) {
+                btn.disabled = false;
+                return alert('تعذر تحديد الفرقة المستهدفة للطليعة.');
+            }
 
             try {
                 if (isTroopLeader) {
                     // ⏳ قائد الفرقة يرسل طلب معلق
-                    const reqData = { type: editId ? 'edit' : 'create', patrol_id: editId || null, patrol_name: name, patrol_yell: yell, scout_ids: JSON.stringify(Array.from(selectedIds)), requested_by: currentUser.username, troop: targetTroop, status: 'pending' };
-                    await supabaseClient.from('patrol_requests').insert([reqData]);
-                    alert('تم الإرسال للماستر للموافقة!');
+                    const reqData = { type: editId ? 'edit' : 'create', patrol_id: editId || null, patrol_name: name, patrol_yell: yell, scout_ids: Array.from(selectedIds), requested_by: currentUser.username, troop: targetTroop, status: 'pending' };
+                    const { error: reqError } = await supabaseClient.from('patrol_requests').insert([reqData]);
+                    if (reqError) throw reqError;
+                    alert('تم إرسال الطلب لقائد القطاع للمراجعة، والماستر/القائد العام يقدروا يراجعوه أيضًا.');
                 } else {
                     // ✅ SectorLeader/Master/General يضيفون الطليعة مباشرة
                     let patrolId = editId;
                     if (editId) {
-                        await supabaseClient.from('patrols').update({ name, yell, troop: targetTroop }).eq('id', editId);
-                        await supabaseClient.from('scouts').update({ patrol_id: null }).eq('patrol_id', editId);
+                        const { error: updateError } = await supabaseClient.from('patrols').update({ name, yell, troop: targetTroop }).eq('id', editId);
+                        if (updateError) throw updateError;
+                        const { error: clearError } = await supabaseClient.from('scouts').update({ patrol_id: null }).eq('patrol_id', editId);
+                        if (clearError) throw clearError;
                     } else {
-                        const { data } = await supabaseClient.from('patrols').insert([{ name, yell, troop: targetTroop }]).select();
+                        const { data, error: insertError } = await supabaseClient.from('patrols').insert([{ name, yell, troop: targetTroop }]).select();
+                        if (insertError) throw insertError;
                         patrolId = data[0].id;
                     }
                     if (selectedIds.size > 0) {
-                        await supabaseClient.from('scouts').update({ patrol_id: patrolId }).in('scout_id', Array.from(selectedIds));
+                        const { error: assignError } = await supabaseClient.from('scouts').update({ patrol_id: patrolId }).in('scout_id', Array.from(selectedIds));
+                        if (assignError) throw assignError;
                     }
                     alert(editId ? 'تم التعديل بنجاح!' : 'تم تأسيس الطليعة بنجاح بدون موافقة!');
                 }
