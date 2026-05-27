@@ -187,8 +187,14 @@
         const troopToSector = {
             'براعم': 'براعم',
             'أشبال وزهرات': 'ابتدائي',
+            'أشبال': 'ابتدائي',
+            'زهرات': 'ابتدائي',
             'مبتدئ ومرشدات': 'اعدادي',
-            'متقدم ورائدات': 'ثانوي'
+            'كشاف مبتدئ': 'اعدادي',
+            'مرشدات': 'اعدادي',
+            'متقدم ورائدات': 'ثانوي',
+            'كشاف متقدم': 'ثانوي',
+            'رائدات': 'ثانوي'
         };
 
         async function loadLeadersInSameSector() {
@@ -263,13 +269,31 @@
         // ===== Badges =====
         async function loadBadges() {
             if (['SectorLeader', 'General', 'Master'].includes(role)) {
-                // Scout requests badge
+                let addCount = 0;
+                let changeCount = 0;
+
                 let scoutQuery = supabaseClient.from('scouts').select('scout_id', { count: 'exact', head: true }).eq('status', 'قيد الانتظار');
-                if (role === 'SectorLeader') scoutQuery = scoutQuery.eq('school_stage', user.sector);
-                const { count: scoutCount } = await scoutQuery;
-                if (scoutCount > 0) {
+                if (role === 'SectorLeader') {
+                    const sectorStageMap = { 'براعم': 'براعم', 'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي' };
+                    const stage = sectorStageMap[user.sector] || user.sector;
+                    if (stage) scoutQuery = scoutQuery.eq('school_stage', stage);
+                }
+                const { count: pendingAdd } = await scoutQuery;
+                addCount = pendingAdd || 0;
+
+                let changeQuery = supabaseClient.from('scout_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+                if (role === 'SectorLeader') {
+                    const sectorStageMap = { 'براعم': 'براعم', 'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي' };
+                    const stage = sectorStageMap[user.sector] || user.sector;
+                    if (stage) changeQuery = changeQuery.eq('school_stage', stage);
+                }
+                const { count: pendingChanges } = await changeQuery;
+                changeCount = pendingChanges || 0;
+
+                const totalScoutReqs = addCount + changeCount;
+                if (totalScoutReqs > 0) {
                     const badge = document.getElementById('scoutReqBadge');
-                    badge.textContent = scoutCount;
+                    badge.textContent = totalScoutReqs;
                     badge.classList.remove('hidden');
                 }
 
@@ -279,9 +303,9 @@
                     // خريطة الفرق الموحدة حسب القطاع
                     const troopMap = {
                         'براعم': ['براعم'],
-                        'ابتدائي': ['أشبال وزهرات'],
-                        'اعدادي': ['مبتدئ ومرشدات'],
-                        'ثانوي': ['متقدم ورائدات']
+                        'ابتدائي': ['أشبال وزهرات', 'أشبال', 'زهرات'],
+                        'اعدادي': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'],
+                        'ثانوي': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات']
                     };
                     const allowed = troopMap[user.sector] || [];
                     if (allowed.length > 0) patrolQuery = patrolQuery.in('troop', allowed);
@@ -301,9 +325,9 @@
         loadBadges();
     </script>
     <script>
-    if(['Master', 'General'].includes(currentUser.role)) {
+    if (['Master', 'General'].includes(user.role)) {
         document.querySelectorAll('.role-troop-up').forEach(el => el.style.display = 'none');
     }
-</script>
+    </script>
 </body>
 </html>
