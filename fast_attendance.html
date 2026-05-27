@@ -91,13 +91,18 @@
 
         document.getElementById('sessionDate').valueAsDate = new Date();
 
-        // Mapping: troop → school_stage
-        const troopStageMap = {
-            'براعم': 'براعم',
-            'أشبال وزهرات': 'ابتدائي',
-            'مبتدئ ومرشدات': 'اعدادي',
-            'متقدم ورائدات': 'ثانوي'
-        };
+        // Mapping: troop/sector → school_stage (يدعم الأسماء القديمة والموحدة)
+        function getDbSchoolStage(troopOrSector) {
+            if (!troopOrSector) return null;
+            const raw = String(troopOrSector).trim();
+            const norm = { 'أشبال': 'أشبال وزهرات', 'زهرات': 'أشبال وزهرات', 'كشاف مبتدئ': 'مبتدئ ومرشدات', 'مرشدات': 'مبتدئ ومرشدات', 'كشاف متقدم': 'متقدم ورائدات', 'رائدات': 'متقدم ورائدات' };
+            const unified = norm[raw] || raw;
+            const map = {
+                'براعم': 'براعم', 'أشبال وزهرات': 'ابتدائي', 'مبتدئ ومرشدات': 'اعدادي', 'متقدم ورائدات': 'ثانوي',
+                'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي'
+            };
+            return map[unified] || map[raw] || null;
+        }
 
         let allScouts = [];
 
@@ -108,11 +113,9 @@
                 .eq('status', 'مقبول')
                 .order('full_name');
 
-            if (currentUser.role === 'TroopLeader') {
-                const stage = troopStageMap[currentUser.troop] || currentUser.troop;
-                query = query.eq('school_stage', stage);
-            } else if (currentUser.role === 'SectorLeader') {
-                query = query.eq('school_stage', currentUser.sector);
+            if (currentUser.role === 'TroopLeader' || currentUser.role === 'SectorLeader') {
+                const dbStage = getDbSchoolStage(currentUser.troop || currentUser.sector);
+                if (dbStage) query = query.eq('school_stage', dbStage);
             }
             // Master & General → no filter → see all
 
