@@ -102,9 +102,9 @@
                     <label class="form-label">القطاع</label>
                     <select id="regSector" class="form-input" style="padding-right:1rem">
                         <option value="براعم">براعم</option>
-                        <option value="أشبال وزهرات">أشبال وزهرات</option>
-                        <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
-                        <option value="متقدم ورائدات">متقدم ورائدات</option>
+                        <option value="ابتدائي">ابتدائي (أشبال وزهرات)</option>
+                        <option value="اعدادي">إعدادي (مبتدئ ومرشدات)</option>
+                        <option value="ثانوي">ثانوي (متقدم ورائدات)</option>
                     </select>
                 </div>
 
@@ -148,13 +148,22 @@
             } else if (data.status === 'قيد الانتظار') {
                 alert('حسابك لسه متفعلش يا قائد! استنى موافقة الماستر أو القائد العام.');
             } else {
+                const normTroop = { 'أشبال': 'أشبال وزهرات', 'زهرات': 'أشبال وزهرات', 'كشاف مبتدئ': 'مبتدئ ومرشدات', 'مرشدات': 'مبتدئ ومرشدات', 'كشاف متقدم': 'متقدم ورائدات', 'رائدات': 'متقدم ورائدات' };
+                const toDbStage = { 'براعم': 'براعم', 'أشبال وزهرات': 'ابتدائي', 'مبتدئ ومرشدات': 'اعدادي', 'متقدم ورائدات': 'ثانوي', 'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي' };
+                let troop = data.troop;
+                let sector = data.sector;
+                if (data.role === 'TroopLeader' && troop) troop = normTroop[troop.trim()] || troop;
+                if (data.role === 'SectorLeader' && sector) {
+                    const unified = normTroop[sector.trim()] || sector.trim();
+                    sector = toDbStage[unified] || toDbStage[sector.trim()] || sector;
+                }
                 localStorage.setItem('scout_leader_session', JSON.stringify({
                     id: data.id,
                     full_name: data.full_name,
                     username: data.username,
                     role: data.role,
-                    troop: data.troop,
-                    sector: data.sector
+                    troop: troop,
+                    sector: sector
                 }));
                 window.location.href = 'home.html';
             }
