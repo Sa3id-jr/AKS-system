@@ -125,6 +125,8 @@
 
             const patrolIds = (patrols || []).map(p => p.id);
             const scoutsByPatrol = {};
+            const attendanceByScout = {};
+            
             if (patrolIds.length > 0) {
                 const { data: membersData } = await supabaseClient
                     .from('scouts')
@@ -134,12 +136,41 @@
                     if (!scoutsByPatrol[m.patrol_id]) scoutsByPatrol[m.patrol_id] = [];
                     scoutsByPatrol[m.patrol_id].push(m);
                 });
+                
+                // جيب بيانات الحضور لكل الكشافين في الطلايع
+                const allScoutIds = (membersData || []).map(m => m.scout_id);
+                if (allScoutIds.length > 0) {
+                    const { data: attendanceData } = await supabaseClient
+                        .from('attendance')
+                        .select('scout_id, status')
+                        .in('scout_id', allScoutIds);
+                    
+                    (attendanceData || []).forEach(a => {
+                        if (!attendanceByScout[a.scout_id]) attendanceByScout[a.scout_id] = { total: 0, present: 0 };
+                        attendanceByScout[a.scout_id].total++;
+                        if (a.status === 'حاضر') attendanceByScout[a.scout_id].present++;
+                    });
+                }
             }
 
             document.getElementById('patrolCount').textContent = patrols.length;
 
             patrols.forEach(p => {
                 const members = scoutsByPatrol[p.id] || [];
+                
+                // حساب نسبة الحضور للطليعة
+                let totalSessions = 0;
+                let totalPresent = 0;
+                members.forEach(m => {
+                    const att = attendanceByScout[m.scout_id];
+                    if (att) {
+                        totalSessions += att.total;
+                        totalPresent += att.present;
+                    }
+                });
+                const attendancePercentage = totalSessions > 0 ? Math.round((totalPresent / totalSessions) * 100) : 0;
+                const percentColor = attendancePercentage >= 80 ? 'text-green-400' : (attendancePercentage >= 50 ? 'text-yellow-400' : 'text-red-400');
+                
                 const avatarsHtml = members.slice(0, 4).map(m => `<div class="avatar-circle" title="${m.full_name}">${m.full_name[0]}</div>`).join('');
 
                 const manageBtns = canEditOrDelete ? `
@@ -157,6 +188,10 @@
                             <h3 class="font-bold text-white text-base truncate">${p.name}</h3>
                             <p class="text-xs text-gray-500 mt-1 italic">${p.yell || 'لا توجد صيحة'}</p>
                             <p class="text-xs text-[var(--gold)] mt-1">${p.troop || ''}</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold ${percentColor}">${attendancePercentage}%</div>
+                            <div class="text-[10px] text-gray-500">نسبة الحضور</div>
                         </div>
                     </div>
                     <div class="flex items-center justify-between mt-4">
