@@ -155,7 +155,22 @@ async function fetchScouts() {
     console.log('✅ Fetched Scouts:', data?.length || 0, 'scouts');
     
     allScouts = data.map(scout => { scout.scout_group = getScoutStage(scout.school_stage, scout.gender); return scout; });
+    
+    // جيب أسماء الطلايع
+    await fetchPatrolNames();
+    
+    updateScoutCounts();
     renderTable(); 
+}
+
+let patrolsMap = {};
+
+async function fetchPatrolNames() {
+    const { data: patrols } = await supabaseClient.from('patrols').select('id, name');
+    patrolsMap = {};
+    if (patrols) {
+        patrols.forEach(p => { patrolsMap[p.id] = p.name; });
+    }
 }
 
 function renderTable() {
@@ -167,9 +182,10 @@ function renderTable() {
         const matchesTab = currentFilterStage === 'الكل' || scout.scout_group === currentFilterStage;
         return matchesTab && `${scout.full_name} ${scout.scout_id} ${scout.personal_phone}`.toLowerCase().includes(searchTerm);
     });
-    if (filteredScouts.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">مفيش نتايج...</td></tr>`; return; }
+    if (filteredScouts.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">مفيش نتايج...</td></tr>`; return; }
     filteredScouts.forEach(scout => {
         const imgSrc = getDirectDriveLink(scout.photo_url);
+        const patrolName = scout.patrol_id ? (patrolsMap[scout.patrol_id] || '—') : '—';
         const tr = document.createElement('tr');
         let actionsHtml = `<button onclick="viewProfile('${scout.scout_id}')" class="text-blue-600 hover:text-blue-900 text-lg"><i class="fa-solid fa-address-card"></i></button>`;
         if (canManageScoutsDirect || isTroopLeaderScout) {
@@ -181,10 +197,34 @@ function renderTable() {
             <td class="p-4 font-bold text-[var(--gold)]">${scout.scout_id}</td>
             <td class="p-4 font-medium text-white">${scout.full_name}</td>
             <td class="p-4"><span class="bg-[var(--dark3)] text-[var(--gold)] px-2.5 py-1 rounded-md text-xs font-bold border border-[var(--border)]">${scout.scout_group || '-'}</span></td>
+            <td class="p-4 text-gray-400 text-sm">${patrolName}</td>
             <td class="p-4 text-gray-400 font-mono" dir="ltr">${scout.personal_phone || '-'}</td>
             <td class="p-4 text-center">${actionsHtml}</td>
         `;
         tbody.appendChild(tr);
+    });
+}
+
+function updateScoutCounts() {
+    // حساب العدد الكلي
+    const totalCount = allScouts.length;
+    const boysTotal = allScouts.filter(s => s.gender === 'ولد').length;
+    const girlsTotal = allScouts.filter(s => s.gender === 'بنت').length;
+    
+    document.getElementById('count-الكل').innerHTML = `${totalCount} <span style="font-size: 0.65rem; opacity: 0.8;">(👦${boysTotal} 👧${girlsTotal})</span>`;
+    
+    // حساب عدد كل مرحلة
+    const stages = ['براعم', 'أشبال وزهرات', 'مبتدئ ومرشدات', 'متقدم ورائدات'];
+    stages.forEach(stage => {
+        const stageScouts = allScouts.filter(scout => scout.scout_group === stage);
+        const count = stageScouts.length;
+        const boys = stageScouts.filter(s => s.gender === 'ولد').length;
+        const girls = stageScouts.filter(s => s.gender === 'بنت').length;
+        
+        const badge = document.getElementById(`count-${stage}`);
+        if (badge) {
+            badge.innerHTML = `${count} <span style="font-size: 0.65rem; opacity: 0.8;">(👦${boys} 👧${girls})</span>`;
+        }
     });
 }
 
