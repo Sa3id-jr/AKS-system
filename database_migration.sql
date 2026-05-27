@@ -49,3 +49,18 @@ UNION ALL
 SELECT 'patrols', troop, COUNT(*) FROM patrols WHERE troop IN ('أشبال وزهرات', 'مبتدئ ومرشدات', 'متقدم ورائدات', 'براعم') GROUP BY troop
 UNION ALL
 SELECT 'patrol_requests', troop, COUNT(*) FROM patrol_requests WHERE troop IN ('أشبال وزهرات', 'مبتدئ ومرشدات', 'متقدم ورائدات', 'براعم') GROUP BY troop;
+
+-- ================================================================================
+-- 5. جدول scout_requests (طلبات تعديل / حذف الكشافين)
+-- شغّل مرة واحدة في Supabase SQL Editor
+-- ================================================================================
+CREATE TABLE IF NOT EXISTS scout_requests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    scout_id TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('edit', 'delete')),
+    scout_data JSONB,
+    school_stage TEXT,
+    requested_by TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
