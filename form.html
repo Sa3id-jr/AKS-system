@@ -255,6 +255,24 @@
             // - يضيف الكشافين مباشرة بدون موافقة (status = 'مقبول')
             // - يوافق على الكشافين المضافين من قادة الفرق
             const isAdmin = currentUser?.role === 'Master' || currentUser?.role === 'General' || currentUser?.role === 'SectorLeader';
+            const troopToDbStageMap = {
+                'براعم': 'براعم',
+                'أشبال وزهرات': 'ابتدائي',
+                'أشبال': 'ابتدائي',
+                'زهرات': 'ابتدائي',
+                'مبتدئ ومرشدات': 'اعدادي',
+                'كشاف مبتدئ': 'اعدادي',
+                'مرشدات': 'اعدادي',
+                'متقدم ورائدات': 'ثانوي',
+                'كشاف متقدم': 'ثانوي',
+                'رائدات': 'ثانوي'
+            };
+
+            let schoolStage = document.getElementById('formSchoolStage').value || null;
+            // TroopLeader لازم يضيف داخل فرقته فقط عشان الطلب يظهر لقائد القطاع الصحيح
+            if (currentUser?.role === 'TroopLeader') {
+                schoolStage = troopToDbStageMap[currentUser.troop] || schoolStage;
+            }
 
             const scoutData = {
                 scout_id: document.getElementById('formScoutId').value.trim(),
@@ -265,7 +283,7 @@
                 father_phone: document.getElementById('formFatherPhone').value.trim() || null,
                 mother_phone: document.getElementById('formMotherPhone').value.trim() || null,
                 address: document.getElementById('formAddress').value.trim() || null,
-                school_stage: document.getElementById('formSchoolStage').value || null,
+                school_stage: schoolStage,
                 school_year: document.getElementById('formSchoolYear').value.trim() || null,
                 personal_email: document.getElementById('formPersonalEmail').value.trim() || null,
                 facebook_account: document.getElementById('formFacebook').value.trim() || null,
@@ -324,7 +342,7 @@
 
                 if (!isSaved) throw new Error("تعذر حفظ الكشاف بسبب الضغط على السيستم، جرب كمان شوية.");
 
-                alert(isAdmin ? `عاش يا قائد! الكشاف اتضاف بنجاح بكود: ${currentScoutId}` : 'الطلب اتبعت ومستني موافقة القائد العام!');
+                alert(isAdmin ? `عاش يا قائد! الكشاف اتضاف بنجاح بكود: ${currentScoutId}` : 'تم إرسال الطلب لقائد القطاع للمراجعة، والماستر/القائد العام يقدروا يراجعوه أيضًا.');
                 document.getElementById('addScoutForm').reset(); 
                 await fetchNextScoutId();
 
