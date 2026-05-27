@@ -107,6 +107,35 @@
                 const scoutIds = parseScoutIds(req.scout_ids);
                 const names = await getScoutNames(scoutIds);
 
+                // لو تعديل، نجيب البيانات القديمة للمقارنة
+                let comparisonHtml = '';
+                if (req.type === 'edit' && req.patrol_id) {
+                    const { data: oldPatrol } = await supabaseClient
+                        .from('patrols')
+                        .select('name, yell, troop')
+                        .eq('id', req.patrol_id)
+                        .single();
+                    
+                    if (oldPatrol) {
+                        const changes = [];
+                        if (oldPatrol.name !== req.patrol_name) {
+                            changes.push(`<div class="flex gap-2 items-center text-xs"><span class="text-gray-500">الاسم:</span><span class="line-through text-red-400">${oldPatrol.name}</span><i class="fa-solid fa-arrow-left text-[var(--gold)]"></i><span class="text-green-400">${req.patrol_name}</span></div>`);
+                        }
+                        if ((oldPatrol.yell || '') !== (req.patrol_yell || '')) {
+                            changes.push(`<div class="flex gap-2 items-center text-xs"><span class="text-gray-500">الصيحة:</span><span class="line-through text-red-400">${oldPatrol.yell || 'بدون صيحة'}</span><i class="fa-solid fa-arrow-left text-[var(--gold)]"></i><span class="text-green-400">${req.patrol_yell || 'بدون صيحة'}</span></div>`);
+                        }
+                        if (oldPatrol.troop !== req.troop) {
+                            changes.push(`<div class="flex gap-2 items-center text-xs"><span class="text-gray-500">الفرقة:</span><span class="line-through text-red-400">${oldPatrol.troop}</span><i class="fa-solid fa-arrow-left text-[var(--gold)]"></i><span class="text-green-400">${req.troop}</span></div>`);
+                        }
+                        
+                        if (changes.length > 0) {
+                            comparisonHtml = `<div class="mb-4 p-3 bg-[var(--dark3)] rounded-lg border border-[rgba(201,168,76,0.2)]"><p class="text-xs font-bold text-[var(--gold)] mb-2"><i class="fa-solid fa-code-compare ml-1"></i> التغييرات المطلوبة:</p><div class="space-y-2">${changes.join('')}</div></div>`;
+                        }
+                    }
+                }
+
+                const yellDisplay = req.patrol_yell ? `<p class="text-xs text-gray-400 italic mt-1"><i class="fa-solid fa-bullhorn ml-1"></i> ${req.patrol_yell}</p>` : '';
+
                 const card = document.createElement('div');
                 card.className = 'request-card';
                 card.id = `req-${req.id}`;
@@ -114,11 +143,13 @@
                     <div class="card-header">
                         <div>
                             <p class="font-bold text-white">${req.patrol_name} <span class="text-xs text-[var(--gold)] ml-2">(${req.troop})</span></p>
+                            ${yellDisplay}
                             <p class="text-xs text-gray-500 mt-1">بواسطة: ${req.requested_by}</p>
                         </div>
                         <span class="badge-type">${req.type === 'create' ? 'إنشاء جديد' : (req.type === 'delete' ? 'حذف طليعة' : 'تعديل')}</span>
                     </div>
                     <div class="p-5">
+                        ${comparisonHtml}
                         <p class="text-xs text-[var(--gold)] mb-2">الكشافين المطلوبين (${names.length})</p>
                         <div class="flex flex-wrap gap-2 text-sm text-gray-300 mb-4">${names.length ? names.join(' ، ') : '—'}</div>
                         <div class="flex gap-3">
