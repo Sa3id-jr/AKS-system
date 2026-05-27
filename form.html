@@ -246,78 +246,98 @@
         }
 
         async function submitScoutData(event) {
-    // 1. منع الفورمة إنها تعمل refresh للصفحة (أهم خطوة)
-    event.preventDefault();
+            event.preventDefault();
 
-    // 2. تحديد صلاحية القائد
-    const sessionRaw = localStorage.getItem('scout_leader_session');
-    const currentUser = sessionRaw ? JSON.parse(sessionRaw) : null;
-    const isAdmin = currentUser?.role === 'Master' || currentUser?.role === 'General';
+            const sessionRaw = localStorage.getItem('scout_leader_session');
+            const currentUser = sessionRaw ? JSON.parse(sessionRaw) : null;
+            
+            // ✅ قائد القطاع (SectorLeader) له صلاحيات إدارية:
+            // - يضيف الكشافين مباشرة بدون موافقة (status = 'مقبول')
+            // - يوافق على الكشافين المضافين من قادة الفرق
+            const isAdmin = currentUser?.role === 'Master' || currentUser?.role === 'General' || currentUser?.role === 'SectorLeader';
 
-    // 3. تجميع البيانات
-    const scoutData = {
-        scout_id: document.getElementById('formScoutId').value.trim(),
-        full_name: document.getElementById('formFullName').value.trim(),
-        birth_date: document.getElementById('formBirthDate').value || null,
-        gender: document.getElementById('formGender').value || null,
-        personal_phone: document.getElementById('formPersonalPhone').value.trim(),
-        father_phone: document.getElementById('formFatherPhone').value.trim() || null,
-        mother_phone: document.getElementById('formMotherPhone').value.trim() || null,
-        address: document.getElementById('formAddress').value.trim() || null,
-        school_stage: document.getElementById('formSchoolStage').value || null,
-        school_year: document.getElementById('formSchoolYear').value.trim() || null,
-        personal_email: document.getElementById('formPersonalEmail').value.trim() || null,
-        facebook_account: document.getElementById('formFacebook').value.trim() || null,
-        instagram_account: document.getElementById('formInstagram').value.trim() || null,
-        scout_uniform: document.getElementById('formUniform').value.trim() || null,
-        confession_father: document.getElementById('formConfessionFather').value.trim() || null,
-        confession_church: document.getElementById('formConfessionChurch').value.trim() || null,
-        father_job: document.getElementById('formFatherJob').value.trim() || null,
-        mother_job: document.getElementById('formMotherJob').value.trim() || null,
-        siblings_count: document.getElementById('formSiblingsCount').value.trim() ? parseInt(document.getElementById('formSiblingsCount').value.trim()) : null,
-        sibling_order: document.getElementById('formSiblingOrder').value.trim() ? parseInt(document.getElementById('formSiblingOrder').value.trim()) : null,
-        has_diseases: document.getElementById('formHasDiseases').value || 'لا',
-        diseases_details: document.getElementById('formDiseasesDetails').value.trim() || null,
-        hobbies: document.getElementById('formHobbies').value.trim() || null,
-        certificate: document.getElementById('formCertificate').value.trim() || null,
-        photo_url: document.getElementById('formPhotoUrl').value.trim() || null,
-        status: isAdmin ? 'مقبول' : 'قيد الانتظار'
-    };
+            const scoutData = {
+                scout_id: document.getElementById('formScoutId').value.trim(),
+                full_name: document.getElementById('formFullName').value.trim(),
+                birth_date: document.getElementById('formBirthDate').value || null,
+                gender: document.getElementById('formGender').value || null,
+                personal_phone: document.getElementById('formPersonalPhone').value.trim(),
+                father_phone: document.getElementById('formFatherPhone').value.trim() || null,
+                mother_phone: document.getElementById('formMotherPhone').value.trim() || null,
+                address: document.getElementById('formAddress').value.trim() || null,
+                school_stage: document.getElementById('formSchoolStage').value || null,
+                school_year: document.getElementById('formSchoolYear').value.trim() || null,
+                personal_email: document.getElementById('formPersonalEmail').value.trim() || null,
+                facebook_account: document.getElementById('formFacebook').value.trim() || null,
+                instagram_account: document.getElementById('formInstagram').value.trim() || null,
+                scout_uniform: document.getElementById('formUniform').value.trim() || null,
+                confession_father: document.getElementById('formConfessionFather').value.trim() || null,
+                confession_church: document.getElementById('formConfessionChurch').value.trim() || null,
+                father_job: document.getElementById('formFatherJob').value.trim() || null,
+                mother_job: document.getElementById('formMotherJob').value.trim() || null,
+                siblings_count: document.getElementById('formSiblingsCount').value.trim() ? parseInt(document.getElementById('formSiblingsCount').value.trim()) : null,
+                sibling_order: document.getElementById('formSiblingOrder').value.trim() ? parseInt(document.getElementById('formSiblingOrder').value.trim()) : null,
+                has_diseases: document.getElementById('formHasDiseases').value || 'لا',
+                diseases_details: document.getElementById('formDiseasesDetails').value.trim() || null,
+                hobbies: document.getElementById('formHobbies').value.trim() || null,
+                certificate: document.getElementById('formCertificate').value.trim() || null,
+                photo_url: document.getElementById('formPhotoUrl').value.trim() || null,
+                // حالة الكشاف الأولية:
+                // - Master/General/SectorLeader: "مقبول" ✅ (موافقة تلقائية)
+                // - TroopLeader/Viewer: "قيد الانتظار" ⏳ (ينتظر موافقة)
+                status: isAdmin ? 'مقبول' : 'قيد الانتظار'
+            };
 
-    // 3. الفحص قبل ما نكلم السيرفر
-    if (!validateScoutData(scoutData)) {
-        console.log("Validation failed");
-        return;
-    }
+            if (!validateScoutData(scoutData)) {
+                console.log("Validation failed");
+                return;
+            }
 
-    // 4. إظهار حالة التحميل
-    const btn = document.getElementById('formSubmitBtn');
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+            const btn = document.getElementById('formSubmitBtn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
 
-    // 5. محاولة الحفظ (Try-Catch عشان نصطاد أي إيرور صامت)
-    try {
-        console.log("Sending data to Supabase:", scoutData);
-        const { data, error } = await supabaseClient.from('scouts').insert([scoutData]);
-        console.log("DATA:", data);
-        console.log("ERROR:", error);
+            try {
+                let isSaved = false;
+                let retryCount = 0;
+                let currentScoutId = scoutData.scout_id;
 
-        if (error) throw error;
+                while (!isSaved && retryCount < 10) {
+                    scoutData.scout_id = currentScoutId;
+                    const { error } = await supabaseClient.from('scouts').insert([scoutData]);
+                    
+                    if (error) {
+                        if (error.code === '23505' && error.message.includes('scout_id')) {
+                            retryCount++;
+                            const prefix = currentScoutId.charAt(0);
+                            const numPart = parseInt(currentScoutId.substring(1));
+                            currentScoutId = prefix + String(numPart + 1).padStart(5, '0');
+                            console.log("الكود محجوز، جاري تجربة الكود: ", currentScoutId);
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        isSaved = true;
+                    }
+                }
 
-        alert(isAdmin ? 'عاش يا قائد، الكشاف اتضاف للسيستم مباشرةً!' : 'عاش يا قائد، الطلب اتبعت ومستني موافقة الماستر!');
-        document.getElementById('addScoutForm').reset(); 
-        await fetchNextScoutId(); // تحديث الكود الجديد
-    } catch (err) {
-        console.error("Database Error:", err);
-        alert('في مشكلة في الحفظ: ' + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-    }
-}
+                if (!isSaved) throw new Error("تعذر حفظ الكشاف بسبب الضغط على السيستم، جرب كمان شوية.");
+
+                alert(isAdmin ? `عاش يا قائد! الكشاف اتضاف بنجاح بكود: ${currentScoutId}` : 'الطلب اتبعت ومستني موافقة القائد العام!');
+                document.getElementById('addScoutForm').reset(); 
+                await fetchNextScoutId();
+
+            } catch (err) {
+                console.error("Database Error:", err);
+                alert('في مشكلة في الحفظ: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
 
         fetchNextScoutId();
     </script>
 </body>
-</html>لإ
+</html>

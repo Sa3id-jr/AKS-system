@@ -1,93 +1,32 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <link rel="icon" type="image/png" href="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - Ava Kirolos Scout</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        :root {
-            --gold:    #c9a84c;
-            --gold-lt: #e8d5a3;
-            --silver:  #c0c0c0;
-            --dark:    #0d0d0d;
-            --dark2:   #1a1a1a;
-            --dark3:   #242424;
-            --border:  rgba(201,168,76,0.25);
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--dark);
-            color: var(--silver);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .login-card {
-            background: var(--dark2);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.9);
-            width: 100%;
-            max-width: 420px;
-            overflow: hidden;
-        }
-
-        .btn-gold {
-            background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%);
-            color: #0d0d0d;
-            font-weight: 700;
-            transition: all 0.2s;
-        }
+        :root { --gold: #c9a84c; --gold-lt: #e8d5a3; --silver: #c0c0c0; --dark: #0d0d0d; --dark2: #1a1a1a; --dark3: #242424; --border: rgba(201,168,76,0.25); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--dark); color: var(--silver); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 50px rgba(0,0,0,0.9); width: 100%; max-width: 420px; overflow: hidden; }
+        .btn-gold { background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%); color: #0d0d0d; font-weight: 700; transition: all 0.2s; }
         .btn-gold:hover { filter: brightness(1.15); transform: translateY(-1px); }
-        .btn-gold:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem 2.5rem 0.75rem 2.5rem; /* زودت مساحة على الشمال عشان العين */
-            border: 1px solid rgba(201,168,76,0.2);
-            border-radius: 8px;
-            background: var(--dark3);
-            color: #fff;
-            outline: none;
-            transition: border-color 0.2s;
-        }
+        .btn-gold:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .form-input { width: 100%; padding: 0.75rem 2.5rem 0.75rem 1rem; border: 1px solid rgba(201,168,76,0.2); border-radius: 8px; background: var(--dark3); color: #fff; outline: none; transition: border-color 0.2s; }
         .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,0.15); }
-        
-        .input-icon {
-            position: absolute;
-            right: 12px;
-            top: 38px;
-            color: var(--gold);
-            font-size: 0.9rem;
-        }
-        
-        .eye-icon-btn {
-            position: absolute;
-            left: 12px;
-            color: gray;
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
+        .form-input option { background: var(--dark3); }
+        .input-icon { position: absolute; right: 12px; top: 38px; color: var(--gold); font-size: 0.9rem; }
+        .eye-icon-btn { position: absolute; left: 12px; top: 38px; color: gray; background: none; border: none; cursor: pointer; transition: color 0.2s; }
         .eye-icon-btn:hover { color: var(--gold); }
+        .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
     </style>
 </head>
 <body>
-
     <div class="login-card">
         <div class="text-center p-8 border-b border-[rgba(201,168,76,0.15)] bg-[linear-gradient(135deg,var(--dark3),var(--dark2))]">
-            <img src="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png" 
-                 alt="Logo" class="w-20 h-20 mx-auto rounded-full object-contain mb-4" style="border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(201,168,76,0.3);">
+            <img src="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png" alt="Logo" class="w-20 h-20 mx-auto rounded-full object-contain mb-4" style="border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(201,168,76,0.3);">
             <h1 class="text-xl font-bold text-white tracking-wide">مجموعة آفا كيرلس الكشفية</h1>
             <p class="text-xs text-gray-500 mt-1">نظام إدارة الكشافة الموحد</p>
         </div>
@@ -98,47 +37,78 @@
                 <input type="text" id="username" class="form-input" placeholder="اكتب اسم المستخدم" required>
                 <i class="fa-solid fa-user input-icon"></i>
             </div>
-            
             <div class="relative">
                 <label class="block text-xs font-bold text-gray-400 mb-2">كلمة المرور</label>
                 <input type="password" id="password" class="form-input" placeholder="••••••••" required>
                 <i class="fa-solid fa-lock input-icon"></i>
-                <button type="button" class="eye-icon-btn top-[38px]" onclick="togglePassword('password', 'loginEye')">
-                    <i id="loginEye" class="fa-regular fa-eye-slash"></i>
-                </button>
+                <button type="button" class="eye-icon-btn" onclick="togglePassword('password','loginEye')"><i id="loginEye" class="fa-regular fa-eye-slash"></i></button>
             </div>
-
             <div class="pt-2">
                 <button type="submit" id="loginBtn" class="btn-gold w-full py-3 rounded-lg flex items-center justify-center gap-2 text-base">
                     <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
                 </button>
             </div>
-            <div class="text-center pt-4 border-t border-[rgba(201,168,76,0.15)] mt-4">
+            <div class="text-center pt-4 border-t border-[rgba(201,168,76,0.15)]">
                 <p class="text-sm text-gray-400">قائد جديد؟ <button type="button" onclick="openSignupModal()" class="text-[var(--gold)] font-bold hover:underline">سجل حسابك من هنا</button></p>
             </div>
         </form>
     </div>
 
     <div id="signupModal" class="fixed inset-0 bg-black bg-opacity-80 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-[var(--dark2)] border border-[var(--border)] rounded-xl w-full max-w-md p-6 relative">
+        <div class="bg-[var(--dark2)] border border-[var(--border)] rounded-xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSignupModal()" class="absolute top-4 left-4 text-gray-500 hover:text-red-400 text-xl"><i class="fa-solid fa-circle-xmark"></i></button>
-            <h2 class="text-xl font-bold text-white mb-2">إنشاء حساب قائد</h2>
-            <p class="text-xs text-gray-400 mb-6">الحساب هيحتاج موافقة الماستر قبل التفعيل</p>
-            
+            <h2 class="text-xl font-bold text-white mb-1">إنشاء حساب قائد</h2>
+            <p class="text-xs text-gray-400 mb-5">الحساب هيحتاج موافقة الماستر أو القائد العام قبل التفعيل</p>
+
             <form id="signupForm" onsubmit="handleSignup(event)" class="space-y-4">
-                <div><label class="block text-xs font-bold text-[var(--gold)] mb-1">الاسم بالكامل *</label><input type="text" id="regName" class="form-input" required></div>
-                <div><label class="block text-xs font-bold text-[var(--gold)] mb-1">رقم الموبايل *</label><input type="text" id="regPhone" class="form-input" required dir="ltr"></div>
-                <div><label class="block text-xs font-bold text-[var(--gold)] mb-1">اسم المستخدم (Username) *</label><input type="text" id="regUser" class="form-input" required></div>
-                
-                <div class="relative">
-                    <label class="block text-xs font-bold text-[var(--gold)] mb-1">كلمة المرور *</label>
-                    <input type="password" id="regPass" class="form-input" required>
-                    <button type="button" class="eye-icon-btn top-[28px]" onclick="togglePassword('regPass', 'regEye')">
-                        <i id="regEye" class="fa-regular fa-eye-slash"></i>
-                    </button>
+                <div>
+                    <label class="form-label">الاسم بالكامل *</label>
+                    <input type="text" id="regName" class="form-input" style="padding-right:1rem" required>
                 </div>
-                
-                <button type="submit" id="signupBtn" class="btn-gold w-full py-2 rounded-lg mt-4">تسجيل الحساب</button>
+                <div>
+                    <label class="form-label">رقم الموبايل *</label>
+                    <input type="text" id="regPhone" class="form-input" style="padding-right:1rem" required dir="ltr">
+                </div>
+                <div>
+                    <label class="form-label">اسم المستخدم (Username) *</label>
+                    <input type="text" id="regUser" class="form-input" style="padding-right:1rem" required>
+                </div>
+                <div class="relative">
+                    <label class="form-label">كلمة المرور *</label>
+                    <input type="password" id="regPass" class="form-input" required>
+                    <button type="button" class="eye-icon-btn" style="top:28px" onclick="togglePassword('regPass','regEye')"><i id="regEye" class="fa-regular fa-eye-slash"></i></button>
+                </div>
+
+                <div>
+                    <label class="form-label">الرتبة المطلوبة *</label>
+                    <select id="regRole" class="form-input" style="padding-right:1rem" onchange="toggleRoleFields()">
+                        <option value="TroopLeader">قائد فرقة</option>
+                        <option value="SectorLeader">قائد قطاع</option>
+                        <option value="Viewer">مشاهد</option>
+                    </select>
+                </div>
+
+                <div id="troopField">
+                    <label class="form-label">الفرقة</label>
+                    <select id="regTroop" class="form-input" style="padding-right:1rem">
+                        <option value="براعم">براعم</option>
+                        <option value="أشبال وزهرات">أشبال وزهرات</option>
+                        <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
+                        <option value="متقدم ورائدات">متقدم ورائدات</option>
+                    </select>
+                </div>
+
+                <div id="sectorField" class="hidden">
+                    <label class="form-label">القطاع</label>
+                    <select id="regSector" class="form-input" style="padding-right:1rem">
+                        <option value="براعم">براعم</option>
+                        <option value="أشبال وزهرات">أشبال وزهرات</option>
+                        <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
+                        <option value="متقدم ورائدات">متقدم ورائدات</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="signupBtn" class="btn-gold w-full py-2.5 rounded-lg mt-2">تسجيل الحساب</button>
             </form>
         </div>
     </div>
@@ -150,41 +120,47 @@
 
         if (localStorage.getItem('scout_leader_session')) window.location.href = 'home.html';
 
-        // ================= دالة إظهار/إخفاء الباسوورد =================
         function togglePassword(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            }
+            if (input.type === 'password') { input.type = 'text'; icon.classList.replace('fa-eye-slash','fa-eye'); }
+            else { input.type = 'password'; icon.classList.replace('fa-eye','fa-eye-slash'); }
         }
-        // ==============================================================
+
+        function toggleRoleFields() {
+            const role = document.getElementById('regRole').value;
+            document.getElementById('troopField').classList.toggle('hidden', role !== 'TroopLeader');
+            document.getElementById('sectorField').classList.toggle('hidden', role !== 'SectorLeader');
+        }
 
         async function handleLogin(event) {
             event.preventDefault();
-            const userInp = document.getElementById('username').value.trim();
-            const passInp = document.getElementById('password').value.trim();
             const btn = document.getElementById('loginBtn');
             btn.disabled = true; btn.innerHTML = 'جاري التحقق...';
 
-            const { data, error } = await supabaseClient.from('leaders').select('*').eq('username', userInp).eq('password', passInp).single();
+            const { data, error } = await supabaseClient.from('leaders').select('*')
+                .eq('username', document.getElementById('username').value.trim())
+                .eq('password', document.getElementById('password').value.trim())
+                .single();
 
             if (error || !data) {
                 alert('اسم المستخدم أو كلمة المرور غلط.');
             } else if (data.status === 'قيد الانتظار') {
-                alert('حسابك لسه متفعلش يا قائد! استنى موافقة الماستر.');
+                alert('حسابك لسه متفعلش يا قائد! استنى موافقة الماستر أو القائد العام.');
             } else {
-                localStorage.setItem('scout_leader_session', JSON.stringify({ full_name: data.full_name, username: data.username, role: data.role, troop: data.troop }));
+                localStorage.setItem('scout_leader_session', JSON.stringify({
+                    id: data.id,
+                    full_name: data.full_name,
+                    username: data.username,
+                    role: data.role,
+                    troop: data.troop,
+                    sector: data.sector
+                }));
                 window.location.href = 'home.html';
             }
-            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول';
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول';
         }
 
         function openSignupModal() { document.getElementById('signupModal').classList.remove('hidden'); }
@@ -195,26 +171,32 @@
             const btn = document.getElementById('signupBtn');
             btn.disabled = true; btn.textContent = 'جاري التسجيل...';
 
+            const requestedRole = document.getElementById('regRole').value;
+            const troop = requestedRole === 'TroopLeader' ? document.getElementById('regTroop').value : 'غير محدد';
+            const sector = requestedRole === 'SectorLeader' ? document.getElementById('regSector').value : null;
+
             const leaderData = {
                 full_name: document.getElementById('regName').value.trim(),
                 phone: document.getElementById('regPhone').value.trim(),
                 username: document.getElementById('regUser').value.trim(),
                 password: document.getElementById('regPass').value.trim(),
-                role: 'Viewer', // رتبة مؤقتة عشان الداتا بيز تقبل
-                troop: 'غير محدد',
-                status: 'قيد الانتظار' // ده اللي هيمنعه من الدخول لحد ما يتفعل
+                role: requestedRole,        
+                troop: troop,
+                sector: sector,
+                status: 'قيد الانتظار',
             };
 
             const { error } = await supabaseClient.from('leaders').insert([leaderData]);
 
             if (error) {
-                if (error.code === '23505') alert('اسم المستخدم ده حد واخده، جرب واحد تاني!');
-                else alert('خطأ: ' + error.message);
+                alert(error.code === '23505' ? 'اسم المستخدم ده حد واخده، جرب واحد تاني!' : 'خطأ: ' + error.message);
             } else {
-                alert('تم تسجيل حسابك بنجاح! كلم الماستر عشان يفعلهولك ويحدد رتبتك.');
+                alert('تم تسجيل حسابك بنجاح!\n\nكلم الماستر أو القائد العام عشان يفعلهولك ويحدد رتبتك.');
                 closeSignupModal();
                 document.getElementById('signupForm').reset();
+                toggleRoleFields();
             }
+
             btn.disabled = false; btn.textContent = 'تسجيل الحساب';
         }
     </script>

@@ -4,317 +4,148 @@
     <link rel="icon" type="image/png" href="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>طلبات الإضافة - Ava Kirolos</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        :root {
-            --gold: #c9a84c;
-            --silver: #c0c0c0;
-            --dark: #0d0d0d;
-            --dark2: #1a1a1a;
-            --dark3: #242424;
-            --border: rgba(201,168,76,0.25);
-            --green: #2e7d32;
-            --red: #c62828;
-        }
-
-        body {
-            background: var(--dark);
-            color: var(--silver);
-            font-family: 'Segoe UI', sans-serif;
-        }
-
-        .table-card {
-            background: var(--dark2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        thead tr {
-            background: var(--dark3);
-            border-bottom: 1px solid var(--border);
-            color: var(--gold);
-        }
-
-        tbody tr {
-            border-bottom: 1px solid rgba(201,168,76,0.08);
-        }
-
-        tbody tr:hover {
-            background: rgba(201,168,76,0.05);
-        }
-
-        .btn-action {
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: white;
-            transition: 0.2s;
-        }
-
-        .btn-accept {
-            background: var(--green);
-        }
-
-        .btn-reject {
-            background: var(--red);
-        }
-
-        .btn-action:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.1);
-        }
+        :root { --gold: #c9a84c; --silver: #c0c0c0; --dark: #0d0d0d; --dark2: #1a1a1a; --dark3: #242424; --border: rgba(201,168,76,0.25); --green: #2e7d32; --red: #c62828; }
+        body { background: var(--dark); color: var(--silver); font-family: 'Segoe UI', sans-serif; }
+        .table-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        thead tr { background: var(--dark3); border-bottom: 1px solid var(--border); color: var(--gold); }
+        tbody tr { border-bottom: 1px solid rgba(201,168,76,0.08); transition: background 0.15s; }
+        tbody tr:hover { background: rgba(201,168,76,0.05); }
+        .btn-action { padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-accept { background: var(--green); }
+        .btn-reject { background: var(--red); }
+        .btn-action:hover { transform: translateY(-1px); filter: brightness(1.1); }
     </style>
 </head>
-
 <body>
+    <nav class="p-4 bg-[linear-gradient(135deg,var(--dark)_0%,var(--dark2)_100%)] border-b border-[var(--border)] flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <button onclick="window.location.href='home.html'" class="text-xl text-[var(--gold)]"><i class="fa-solid fa-arrow-right"></i></button>
+            <h1 class="text-lg font-bold text-white">طلبات الإضافة المعلقة (<span id="requestsBadge">0</span>)</h1>
+        </div>
+        <p class="text-xs text-gray-500" id="accessNote">جاري التحميل...</p>
+    </nav>
 
-<nav class="p-4 bg-[linear-gradient(135deg,var(--dark)_0%,var(--dark2)_100%)] border-b border-[var(--border)] flex justify-between items-center">
-
-    <div class="flex items-center gap-3">
-
-        <button onclick="window.location.href='home.html'"
-                class="text-xl text-[var(--gold)]">
-            <i class="fa-solid fa-arrow-right"></i>
-        </button>
-
-        <h1 class="text-lg font-bold text-white">
-            طلبات الإضافة المعلقة
-            (<span id="requestsBadge">0</span>)
-        </h1>
-
+    <div class="max-w-6xl mx-auto mt-6 px-4 mb-10">
+        <div class="table-card overflow-x-auto">
+            <table class="w-full text-right whitespace-nowrap">
+                <thead>
+                    <tr>
+                        <th class="p-4">الكود</th>
+                        <th class="p-4">الاسم</th>
+                        <th class="p-4">المرحلة</th>
+                        <th class="p-4">الموبايل</th>
+                        <th class="p-4 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsTableBody">
+                    <tr><td colspan="5" class="p-4 text-center text-gray-500">جاري التحميل...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <p class="text-xs text-gray-500">
-        خاص بالماستر والقائد العام فقط
-    </p>
+    <script>
+        const SUPABASE_URL = 'https://xbdprjxvtwfieiqncbez.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-</nav>
-
-<div class="max-w-6xl mx-auto mt-6 px-4 mb-10">
-
-    <div class="table-card overflow-x-auto">
-
-        <table class="w-full text-right whitespace-nowrap">
-
-            <thead>
-                <tr>
-                    <th class="p-4">الكود</th>
-                    <th class="p-4">الاسم</th>
-                    <th class="p-4">المرحلة</th>
-                    <th class="p-4">الموبايل</th>
-                    <th class="p-4 text-center">الإجراءات</th>
-                </tr>
-            </thead>
-
-            <tbody id="requestsTableBody">
-
-                <tr>
-                    <td colspan="5" class="p-4 text-center">
-                        جاري التحميل...
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
-
-<script>
-
-    const SUPABASE_URL =
-        'https://xbdprjxvtwfieiqncbez.supabase.co';
-
-    const SUPABASE_ANON_KEY =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
-
-    const supabaseClient =
-        window.supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_ANON_KEY
-        );
-
-    // حماية الصفحة
-
-    const sessionData =
-        localStorage.getItem('scout_leader_session');
-
-    const currentUser =
-        sessionData ? JSON.parse(sessionData) : null;
-
-    if (
-        !currentUser ||
-        (
-            currentUser.role !== 'Master' &&
-            currentUser.role !== 'General'
-        )
-    ) {
-        window.location.href = 'home.html';
-    }
-
-    async function loadRequests() {
-
-        const tbody =
-            document.getElementById('requestsTableBody');
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5"
-                    class="p-4 text-center text-gray-500">
-                    جاري التحميل...
-                </td>
-            </tr>
-        `;
-
-        const { data, error } =
-            await supabaseClient
-                .from('scouts')
-                .select('*')
-                .eq('status', 'قيد الانتظار');
-
-        console.log("DATA:", data);
-        console.log("ERROR:", error);
-
-        tbody.innerHTML = '';
-
-        if (error) {
-
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5"
-                        class="p-4 text-center text-red-500">
-                        ${error.message}
-                    </td>
-                </tr>
-            `;
-
-            return;
+        const currentUser = JSON.parse(localStorage.getItem('scout_leader_session') || 'null');
+        // Only SectorLeader, General, Master can access
+        if (!currentUser || !['Master', 'General', 'SectorLeader'].includes(currentUser.role)) {
+            window.location.href = 'home.html';
         }
 
-        if (!data || data.length === 0) {
+        document.getElementById('accessNote').textContent =
+            currentUser.role === 'SectorLeader' ? `قطاع: ${currentUser.sector}` : 'كل القطاعات';
 
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5"
-                        class="p-8 text-center text-gray-500">
-                        مفيش طلبات حالياً
-                    </td>
-                </tr>
-            `;
+        // SectorLeader: sector maps to school_stage
+        const sectorStageMap = {
+            'براعم': 'براعم',
+            'ابتدائي': 'ابتدائي',
+            'اعدادي': 'اعدادي',
+            'ثانوي': 'ثانوي'
+        };
 
-            return;
-        }
+        async function loadRequests() {
+            const tbody = document.getElementById('requestsTableBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">جاري التحميل...</td></tr>`;
 
-        data.forEach(scout => {
+            let query = supabaseClient.from('scouts').select('*').eq('status', 'قيد الانتظار').order('created_at');
 
-            const tr = document.createElement('tr');
-
-            tr.innerHTML = `
-
-                <td class="p-4 font-bold font-mono"
-                    style="color: var(--gold);">
-                    ${scout.scout_id}
-                </td>
-
-                <td class="p-4 text-white font-medium">
-                    ${scout.full_name}
-                </td>
-
-                <td class="p-4 text-gray-400">
-                    ${scout.school_stage || 'غير محدد'}
-                </td>
-
-                <td class="p-4 font-mono text-gray-300"
-                    dir="ltr">
-                    ${scout.personal_phone || '-'}
-                </td>
-
-                <td class="p-4 text-center space-x-2 space-x-reverse">
-
-                    <button
-                        onclick="approveScout('${scout.scout_id}')"
-                        class="btn-action btn-accept">
-
-                        <i class="fa-solid fa-check"></i>
-                        قبول
-
-                    </button>
-
-                    <button
-                        onclick="rejectScout('${scout.scout_id}')"
-                        class="btn-action btn-reject">
-
-                        <i class="fa-solid fa-xmark"></i>
-                        رفض
-
-                    </button>
-
-                </td>
-            `;
-
-            tbody.appendChild(tr);
-
-        });
-
-        document.getElementById('requestsBadge').textContent =
-            data.length;
-    }
-
-    async function approveScout(scoutId) {
-
-        const { error } =
-            await supabaseClient
-                .from('scouts')
-                .update({
-                    status: 'مقبول'
-                })
-                .eq('scout_id', scoutId);
-
-        if (!error) {
-            loadRequests();
-        }
-        else {
-            alert(error.message);
-        }
-    }
-
-    async function rejectScout(scoutId) {
-
-        if (
-            confirm('متأكد إنك عايز ترفض الطلب؟')
-        ) {
-
-            const { error } =
-                await supabaseClient
-                    .from('scouts')
-                    .delete()
-                    .eq('scout_id', scoutId);
-
-            if (!error) {
-                loadRequests();
+            // SectorLeader sees only their sector's stage
+            if (currentUser.role === 'SectorLeader') {
+                const stage = sectorStageMap[currentUser.sector];
+                if (stage) query = query.eq('school_stage', stage);
             }
-            else {
-                alert(error.message);
+
+            const { data, error } = await query;
+            tbody.innerHTML = '';
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">${error.message}</td></tr>`;
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500"><i class="fa-solid fa-circle-check text-green-500 text-2xl block mb-2"></i> مفيش طلبات حالياً</td></tr>`;
+                document.getElementById('requestsBadge').textContent = '0';
+                return;
+            }
+
+            document.getElementById('requestsBadge').textContent = data.length;
+
+            data.forEach(scout => {
+                const tr = document.createElement('tr');
+                tr.id = `row-${scout.scout_id}`;
+                tr.innerHTML = `
+                    <td class="p-4 font-bold font-mono" style="color: var(--gold);">${scout.scout_id}</td>
+                    <td class="p-4 text-white font-medium">${scout.full_name}</td>
+                    <td class="p-4 text-gray-400">${scout.school_stage || 'غير محدد'}</td>
+                    <td class="p-4 font-mono text-gray-300" dir="ltr">${scout.personal_phone || '—'}</td>
+                    <td class="p-4 text-center space-x-2 space-x-reverse">
+                        <button onclick="approveScout('${scout.scout_id}')" class="btn-action btn-accept"><i class="fa-solid fa-check ml-1"></i> قبول</button>
+                        <button onclick="rejectScout('${scout.scout_id}')" class="btn-action btn-reject"><i class="fa-solid fa-xmark ml-1"></i> رفض</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function approveScout(scoutId) {
+            const { error } = await supabaseClient.from('scouts').update({ status: 'مقبول' }).eq('scout_id', scoutId);
+            if (!error) removeRow(scoutId);
+            else alert('خطأ: ' + error.message);
+        }
+
+        async function rejectScout(scoutId) {
+            if (!confirm('متأكد إنك عايز ترفض ومسح الطلب ده نهائياً؟')) return;
+            const { error } = await supabaseClient.from('scouts').delete().eq('scout_id', scoutId);
+            if (!error) removeRow(scoutId);
+            else alert('خطأ: ' + error.message);
+        }
+
+        function removeRow(scoutId) {
+            const row = document.getElementById(`row-${scoutId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                    const remaining = document.querySelectorAll('#requestsTableBody tr').length;
+                    document.getElementById('requestsBadge').textContent = remaining;
+                    if (remaining === 0) {
+                        document.getElementById('requestsTableBody').innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500"><i class="fa-solid fa-circle-check text-green-500 text-2xl block mb-2"></i> مفيش طلبات حالياً</td></tr>`;
+                    }
+                }, 300);
             }
         }
-    }
 
-    loadRequests();
-
-</script>
-
+        loadRequests();
+    </script>
 </body>
 </html>

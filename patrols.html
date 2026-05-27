@@ -7,128 +7,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        :root {
-            --gold:    #c9a84c;
-            --gold-lt: #e8d5a3;
-            --silver:  #c0c0c0;
-            --dark:    #0d0d0d;
-            --dark2:   #1a1a1a;
-            --dark3:   #242424;
-            --border:  rgba(201,168,76,0.25);
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--dark);
-            color: var(--silver);
-            min-height: 100vh;
-        }
-
-        nav {
-            background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
-            border-bottom: 1px solid var(--border);
-            box-shadow: 0 2px 20px rgba(201,168,76,0.08);
-        }
-
-        /* ===== Patrol Cards ===== */
-        .patrol-card {
-            background: var(--dark2);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        .patrol-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, transparent, var(--gold), transparent);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
+        :root { --gold: #c9a84c; --gold-lt: #e8d5a3; --silver: #c0c0c0; --dark: #0d0d0d; --dark2: #1a1a1a; --dark3: #242424; --border: rgba(201,168,76,0.25); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--dark); color: var(--silver); min-height: 100vh; }
+        nav { background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%); border-bottom: 1px solid var(--border); }
+        .patrol-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: all 0.3s; position: relative; overflow: hidden; }
         .patrol-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.6); border-color: rgba(201,168,76,0.5); }
-        .patrol-card:hover::before { opacity: 1; }
-
-        .add-card {
-            background: transparent;
-            border: 2px dashed rgba(201,168,76,0.35);
-            border-radius: 16px;
-            padding: 24px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 180px;
-            gap: 12px;
-        }
-        .add-card:hover { border-color: var(--gold); background: rgba(201,168,76,0.04); transform: translateY(-4px); }
-
-        /* ===== Member Avatars ===== */
-        .member-avatars { display: flex; flex-direction: row-reverse; margin-top: 12px; }
-        .avatar-circle {
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            background: var(--dark3);
-            border: 2px solid var(--dark2);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.65rem; font-weight: bold; color: var(--gold);
-            margin-left: -8px;
-            flex-shrink: 0;
-        }
-        .avatar-more {
-            background: rgba(201,168,76,0.15);
-            color: var(--gold-lt);
-            font-size: 0.6rem;
-        }
-
-        /* ===== Badge ===== */
-        .patrol-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(201,168,76,0.1);
-            border: 1px solid rgba(201,168,76,0.3);
-            color: var(--gold);
-            font-size: 0.7rem; font-weight: 700;
-            padding: 3px 10px; border-radius: 20px;
-        }
-
-        /* ===== Modal ===== */
-        .modal-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(4px);
-            z-index: 50;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px;
-        }
-        .modal-box {
-            background: var(--dark2);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            width: 100%; max-width: 500px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.9);
-            overflow: hidden;
-        }
-
-        /* ===== Skeleton ===== */
-        .skeleton { background: linear-gradient(90deg, var(--dark2) 25%, var(--dark3) 50%, var(--dark2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-        .yell-text { font-style: italic; color: #888; font-size: 0.82rem; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .add-card { background: transparent; border: 2px dashed rgba(201,168,76,0.35); border-radius: 16px; padding: 24px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; gap: 12px; }
+        .add-card:hover { border-color: var(--gold); background: rgba(201,168,76,0.04); }
+        .avatar-circle { width: 32px; height: 32px; border-radius: 50%; background: var(--dark3); border: 2px solid var(--dark2); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: bold; color: var(--gold); margin-left: -8px; }
+        .patrol-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: var(--dark2); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 500px; }
     </style>
 </head>
 <body>
-
     <nav class="p-4 sticky top-0 z-10 flex justify-between items-center">
         <div class="flex items-center gap-3">
-            <button onclick="window.location.href='home.html'" class="text-xl text-[var(--gold)] hover:text-white transition ml-2">
-                <i class="fa-solid fa-arrow-right"></i>
-            </button>
+            <button onclick="window.location.href='home.html'" class="text-xl text-[var(--gold)] hover:text-white transition ml-2"><i class="fa-solid fa-arrow-right"></i></button>
             <div>
                 <h1 class="text-lg font-bold text-white">إدارة الطلايع</h1>
                 <p class="text-xs text-gray-500" id="troopLabel">جاري التحميل...</p>
@@ -138,14 +34,9 @@
     </nav>
 
     <div class="max-w-6xl mx-auto px-4 py-8">
-        <div id="patrolsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Skeleton Loading -->
-            <div class="patrol-card"><div class="skeleton h-5 w-2/3 mb-3"></div><div class="skeleton h-3 w-1/2 mb-6"></div><div class="skeleton h-8 w-full"></div></div>
-            <div class="patrol-card"><div class="skeleton h-5 w-2/3 mb-3"></div><div class="skeleton h-3 w-1/2 mb-6"></div><div class="skeleton h-8 w-full"></div></div>
-        </div>
+        <div id="patrolsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
 
-    <!-- View Members Modal -->
     <div id="viewModal" class="modal-overlay hidden">
         <div class="modal-box">
             <div class="flex justify-between items-center p-5 border-b border-[var(--border)]">
@@ -159,99 +50,60 @@
         </div>
     </div>
 
-    <script>
+<script>
         const SUPABASE_URL = 'https://xbdprjxvtwfieiqncbez.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const sessionData = localStorage.getItem('scout_leader_session');
-        if (!sessionData) window.location.href = 'index.html';
-        const currentUser = JSON.parse(sessionData);
-
-        document.getElementById('troopLabel').textContent = `فرقة: ${currentUser.troop || 'غير محدد'}`;
+        const currentUser = JSON.parse(localStorage.getItem('scout_leader_session') || 'null');
+        if (!currentUser) window.location.href = 'index.html';
+        document.getElementById('troopLabel').textContent = `الفرقة: ${currentUser.troop || currentUser.sector || 'غير محدد'}`;
 
         async function loadPatrols() {
             const grid = document.getElementById('patrolsGrid');
+            grid.innerHTML = '<p class="text-center text-gray-400 col-span-full">جاري التحميل...</p>';
 
-            // جيب الطلايع المرتبطة بالفرقة
-            let query = supabaseClient.from('patrols').select('*, scouts(scout_id, full_name)').order('created_at', { ascending: false });
+            // شيلنا ترتيب created_at عشان ميضربش إيرور
+            let query = supabaseClient.from('patrols').select('*, scouts(scout_id, full_name)');
 
-            // لو مش ماستر أو قائد عام، فلتر على الفرقة بتاعته
             if (currentUser.role !== 'Master' && currentUser.role !== 'General') {
-                query = query.eq('troop', currentUser.troop);
+                const target = currentUser.role === 'SectorLeader' ? currentUser.sector : currentUser.troop;
+                query = query.eq('troop', target);
             }
 
             const { data: patrols, error } = await query;
-
             grid.innerHTML = '';
 
+            // 1. دايمًا نرسم زرار الإضافة الأول (عشان يظهر حتى لو الطلايع فاضية)
+            const addCard = document.createElement('div');
+            addCard.className = 'add-card';
+            addCard.onclick = () => window.location.href = 'add-patrol.html';
+            addCard.innerHTML = `<div class="w-14 h-14 rounded-full bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.3)] flex items-center justify-center"><i class="fa-solid fa-plus text-[var(--gold)] text-xl"></i></div><div class="text-center"><p class="font-bold text-white">تأسيس طليعة جديدة</p></div>`;
+            grid.appendChild(addCard);
+
+            // 2. لو فيه إيرور، نطلعه عشان نبقى شايفينه مش صامت
             if (error) {
-                grid.innerHTML = `<p class="text-red-400 col-span-3 text-center">خطأ في التحميل: ${error.message}</p>`;
-                return;
+                alert("مشكلة في تحميل الطلايع: " + error.message);
+                return; 
             }
 
             document.getElementById('patrolCount').textContent = patrols.length;
 
-            // كارت الإضافة أول حاجة
-            const addCard = document.createElement('div');
-            addCard.className = 'add-card';
-            addCard.onclick = () => window.location.href = 'add-patrol.html';
-            addCard.innerHTML = `
-                <div class="w-14 h-14 rounded-full bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.3)] flex items-center justify-center">
-                    <i class="fa-solid fa-plus text-[var(--gold)] text-xl"></i>
-                </div>
-                <div class="text-center">
-                    <p class="font-bold text-white">تأسيس طليعة جديدة</p>
-                    <p class="text-xs text-gray-500 mt-1">إضافة كشافين وتحديد الصيحة</p>
-                </div>
-            `;
-            grid.appendChild(addCard);
-
-            if (patrols.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'col-span-2 flex items-center justify-center text-gray-600 text-sm py-10';
-                empty.innerHTML = `<i class="fa-solid fa-campground ml-2"></i> مفيش طلايع لحد دلوقتي، ابدأ بإضافة أول طليعة!`;
-                grid.appendChild(empty);
-                return;
-            }
-
+            // 3. رسم الطلايع لو موجودة
             patrols.forEach(p => {
                 const members = p.scouts || [];
-                const shown = members.slice(0, 4);
-                const extra = members.length - shown.length;
-
-                const avatarsHtml = shown.map(m => {
-                    const initials = m.full_name.trim().split(' ').map(w => w[0]).slice(0, 2).join('');
-                    return `<div class="avatar-circle" title="${m.full_name}">${initials}</div>`;
-                }).join('') + (extra > 0 ? `<div class="avatar-circle avatar-more">+${extra}</div>` : '');
-
+                const avatarsHtml = members.slice(0, 4).map(m => `<div class="avatar-circle" title="${m.full_name}">${m.full_name[0]}</div>`).join('');
+                
                 const card = document.createElement('div');
                 card.className = 'patrol-card';
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
-                        <div class="flex-1 min-w-0 ml-3">
-                            <h3 class="font-bold text-white text-base truncate">${p.name}</h3>
-                            <p class="yell-text">${p.yell ? `"${p.yell}"` : 'لا توجد صيحة'}</p>
-                        </div>
-                        <div class="w-10 h-10 rounded-full bg-[rgba(201,168,76,0.1)] border border-[rgba(201,168,76,0.3)] flex items-center justify-center flex-shrink-0">
-                            <i class="fa-solid fa-shield text-[var(--gold)] text-sm"></i>
-                        </div>
+                        <div class="flex-1 min-w-0 ml-3"><h3 class="font-bold text-white text-base truncate">${p.name}</h3><p class="text-xs text-gray-500 mt-1 italic">${p.yell || 'لا توجد صيحة'}</p></div>
                     </div>
-
-                    <div class="flex items-center justify-between mt-4">
-                        <div class="member-avatars">${avatarsHtml}</div>
-                        <span class="text-xs text-gray-500">${members.length} كشاف</span>
-                    </div>
-
+                    <div class="flex items-center justify-between mt-4"><div class="flex flex-row-reverse">${avatarsHtml}</div><span class="text-xs text-gray-500">${members.length} كشاف</span></div>
                     <div class="flex gap-2 mt-4 pt-4 border-t border-[rgba(201,168,76,0.1)]">
-                        <button onclick="viewMembers('${p.id}', '${p.name}', \`${p.yell || ''}\`)" 
-                            class="flex-1 py-2 rounded-lg text-xs font-bold border border-[rgba(201,168,76,0.3)] text-[var(--gold)] hover:bg-[rgba(201,168,76,0.08)] transition">
-                            <i class="fa-solid fa-users ml-1"></i> عرض الأعضاء
-                        </button>
-                        <button onclick="window.location.href='add-patrol.html?edit=${p.id}'"
-                            class="px-3 py-2 rounded-lg text-xs border border-[rgba(255,255,255,0.1)] text-gray-400 hover:text-white hover:border-white transition">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
+                        <button onclick="window.location.href='attendance_session.html?patrol_id=${p.id}&name=${encodeURIComponent(p.name)}'" class="flex-1 py-2 rounded-lg text-xs font-bold bg-[#2e7d32] text-white hover:brightness-110 transition">الحضور</button>
+                        <button onclick="viewMembers('${p.id}', '${p.name}', \`${p.yell || ''}\`)" class="flex-1 py-2 rounded-lg text-xs font-bold border border-[rgba(201,168,76,0.3)] text-[var(--gold)] hover:bg-[rgba(201,168,76,0.08)] transition">الأعضاء</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -260,29 +112,17 @@
 
         function viewMembers(id, name, yell) {
             document.getElementById('modalPatrolName').textContent = name;
-            document.getElementById('modalPatrolYell').textContent = yell ? `"${yell}"` : 'لا توجد صيحة';
-
+            document.getElementById('modalPatrolYell').textContent = yell || 'لا توجد صيحة';
             const listEl = document.getElementById('modalMembersList');
-            listEl.innerHTML = '<p class="text-gray-500 text-sm text-center">جاري التحميل...</p>';
             document.getElementById('viewModal').classList.remove('hidden');
-
-            supabaseClient.from('scouts').select('full_name, school_stage, gender').eq('patrol_id', id).then(({ data }) => {
-                if (!data || data.length === 0) {
-                    listEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">الطليعة فارغة</p>';
-                    return;
-                }
-                listEl.innerHTML = data.map((m, i) => `
-                    <div class="flex items-center gap-3 p-3 rounded-lg bg-[var(--dark3)]">
-                        <div class="w-8 h-8 rounded-full bg-[rgba(201,168,76,0.15)] flex items-center justify-center text-[var(--gold)] text-xs font-bold">${i + 1}</div>
-                        <div>
-                            <p class="text-white text-sm font-medium">${m.full_name}</p>
-                            <p class="text-gray-500 text-xs">${m.school_stage || ''} · ${m.gender || ''}</p>
-                        </div>
-                    </div>
-                `).join('');
+            
+            listEl.innerHTML = '<p class="text-center text-gray-500">جاري التحميل...</p>';
+            
+            supabaseClient.from('scouts').select('full_name').eq('patrol_id', id).then(({ data }) => {
+                listEl.innerHTML = data && data.length > 0 ? data.map((m, i) => `<div class="flex items-center gap-3 p-3 rounded-lg bg-[var(--dark3)]"><div class="w-8 h-8 rounded-full bg-[rgba(201,168,76,0.15)] flex items-center justify-center text-[var(--gold)] text-xs font-bold">${i + 1}</div><p class="text-white text-sm font-medium">${m.full_name}</p></div>`).join('') : '<p class="text-center text-gray-500">الطليعة فارغة</p>';
             });
         }
-
+        
         loadPatrols();
     </script>
 </body>

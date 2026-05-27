@@ -7,167 +7,63 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        :root {
-            --gold:    #c9a84c;
-            --gold-lt: #e8d5a3;
-            --silver:  #c0c0c0;
-            --dark:    #0d0d0d;
-            --dark2:   #1a1a1a;
-            --dark3:   #242424;
-            --border:  rgba(201,168,76,0.25);
-        }
-
+        :root { --gold: #c9a84c; --gold-lt: #e8d5a3; --silver: #c0c0c0; --dark: #0d0d0d; --dark2: #1a1a1a; --dark3: #242424; --border: rgba(201,168,76,0.25); }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--dark); color: var(--silver); min-height: 100vh; }
-
         nav { background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%); border-bottom: 1px solid var(--border); }
-
-        .form-input {
-            width: 100%; padding: 0.75rem 1rem;
-            border: 1px solid rgba(201,168,76,0.2);
-            border-radius: 10px;
-            background: var(--dark3); color: #fff;
-            outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-            font-size: 0.95rem;
-        }
-        .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
-        .form-input::placeholder { color: #444; }
+        .form-input { width: 100%; padding: 0.75rem 1rem; border: 1px solid rgba(201,168,76,0.2); border-radius: 10px; background: var(--dark3); color: #fff; outline: none; }
+        .form-input:focus { border-color: var(--gold); }
         .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
-
-        /* ===== Scout Cards ===== */
-        .scout-card {
-            background: var(--dark3);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 12px;
-            padding: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            user-select: none;
-        }
-        .scout-card:hover { border-color: rgba(201,168,76,0.3); background: rgba(201,168,76,0.04); }
-        .scout-card.selected {
-            border-color: var(--gold);
-            background: rgba(201,168,76,0.1);
-            box-shadow: 0 0 0 1px rgba(201,168,76,0.3);
-        }
-        .scout-card .check-icon {
-            width: 22px; height: 22px; border-radius: 50%;
-            border: 2px solid #444;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; transition: all 0.2s;
-            font-size: 0.65rem; color: transparent;
-        }
-        .scout-card.selected .check-icon {
-            background: var(--gold); border-color: var(--gold); color: #000;
-        }
-        .avatar-initials {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: rgba(201,168,76,0.12);
-            border: 1px solid rgba(201,168,76,0.25);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.75rem; font-weight: 700; color: var(--gold);
-            flex-shrink: 0;
-        }
-
-        /* ===== Selected Counter ===== */
-        .selected-bar {
-            position: sticky; bottom: 0;
-            background: linear-gradient(to top, var(--dark) 80%, transparent);
-            padding: 16px 0 24px;
-            margin-top: 16px;
-        }
-
-        .btn-gold {
-            background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%);
-            color: #0d0d0d; font-weight: 700;
-            border: none; cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-gold:hover { filter: brightness(1.12); transform: translateY(-1px); }
-        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-        .section-card {
-            background: var(--dark2);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 24px;
-        }
-
-        .search-input-wrap { position: relative; }
-        .search-input-wrap input { padding-right: 2.5rem; }
-        .search-input-wrap i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #555; }
-
-        /* ===== Skeleton ===== */
-        .skeleton { background: linear-gradient(90deg, var(--dark2) 25%, var(--dark3) 50%, var(--dark2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .scout-card { background: var(--dark3); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+        .scout-card.selected { border-color: var(--gold); background: rgba(201,168,76,0.1); }
+        .check-icon { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: transparent; }
+        .scout-card.selected .check-icon { background: var(--gold); border-color: var(--gold); color: #000; }
+        .avatar-initials { width: 38px; height: 38px; border-radius: 50%; background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.25); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: var(--gold); }
+        .section-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+        .btn-gold { background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%); color: #0d0d0d; font-weight: 700; border: none; cursor: pointer; }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+        .request-banner { background: rgba(60,179,113,0.1); border: 1px solid rgba(60,179,113,0.3); border-radius: 10px; padding: 12px 16px; color: #3cb371; font-size: 0.85rem; display: flex; align-items: center; gap: 10px; }
     </style>
 </head>
 <body>
-
     <nav class="p-4 sticky top-0 z-10 flex items-center gap-3">
-        <button onclick="window.location.href='patrols.html'" class="text-xl text-[var(--gold)] hover:text-white transition ml-2">
-            <i class="fa-solid fa-arrow-right"></i>
-        </button>
+        <button onclick="window.location.href='patrols.html'" class="text-xl text-[var(--gold)] hover:text-white transition ml-2"><i class="fa-solid fa-arrow-right"></i></button>
         <div>
             <h1 class="text-lg font-bold text-white" id="pageTitle">تأسيس طليعة جديدة</h1>
-            <p class="text-xs text-gray-500">اختار الكشافين وأضفهم للطليعة</p>
+            <p class="text-xs text-gray-500" id="pageSubtitle">اختار الكشافين وأضفهم للطليعة</p>
         </div>
     </nav>
 
     <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <div id="requestBanner" class="request-banner hidden">
+            <i class="fa-solid fa-circle-info"></i><span>كقائد فرقة، طلبك هيتبعت للماستر للموافقة عليه أولاً.</span>
+        </div>
 
-        <!-- بيانات الطليعة -->
         <div class="section-card">
-            <p class="text-xs font-bold text-[var(--gold)] mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved"></i> بيانات الطليعة
-            </p>
+            <p class="text-xs font-bold text-[var(--gold)] mb-4 flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> بيانات الطليعة</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="form-label">اسم الطليعة *</label>
-                    <input type="text" id="patrolName" class="form-input" placeholder="مثال: طليعة النسور">
-                </div>
-                <div>
-                    <label class="form-label">صيحة الطليعة</label>
-                    <input type="text" id="patrolYell" class="form-input" placeholder="الصيحة الخاصة بالطليعة">
+                <div><label class="form-label">اسم الطليعة *</label><input type="text" id="patrolName" class="form-input" placeholder="مثال: طليعة النسور"></div>
+                <div><label class="form-label">صيحة الطليعة</label><input type="text" id="patrolYell" class="form-input" placeholder="الصيحة"></div>
+                
+                <div id="troopSelectorContainer" class="hidden col-span-1 sm:col-span-2">
+                    <label class="form-label">الفرقة الخاصة للطليعة المدمجة *</label>
+                    <select id="patrolTroop" class="form-input" onchange="loadScouts()"></select>
                 </div>
             </div>
         </div>
 
-        <!-- اختار الكشافين -->
         <div class="section-card">
             <div class="flex justify-between items-center mb-4">
-                <p class="text-xs font-bold text-[var(--gold)] flex items-center gap-2">
-                    <i class="fa-solid fa-users"></i> اختار أعضاء الطليعة
-                </p>
-                <span id="selectedCount" class="text-xs font-bold px-3 py-1 rounded-full bg-[rgba(201,168,76,0.1)] text-[var(--gold)] border border-[rgba(201,168,76,0.3)]">
-                    0 محدد
-                </span>
+                <p class="text-xs font-bold text-[var(--gold)]"><i class="fa-solid fa-users"></i> اختار أعضاء الطليعة (ميكس)</p>
+                <span id="selectedCount" class="text-xs font-bold px-3 py-1 rounded-full bg-[rgba(201,168,76,0.1)] text-[var(--gold)] border border-[rgba(201,168,76,0.3)]">0 محدد</span>
             </div>
-
-            <div class="search-input-wrap mb-4">
-                <input type="text" id="searchScout" class="form-input" placeholder="ابحث عن كشاف بالاسم..." oninput="filterScouts()">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </div>
-
-            <div id="scoutsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[420px] overflow-y-auto pl-1">
-                <!-- Skeleton -->
-                <div class="scout-card"><div class="skeleton w-10 h-10 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-3/4 mb-2"></div><div class="skeleton h-2 w-1/2"></div></div></div>
-                <div class="scout-card"><div class="skeleton w-10 h-10 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-3/4 mb-2"></div><div class="skeleton h-2 w-1/2"></div></div></div>
-                <div class="scout-card"><div class="skeleton w-10 h-10 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-3/4 mb-2"></div><div class="skeleton h-2 w-1/2"></div></div></div>
-            </div>
+            <input type="text" id="searchScout" class="form-input mb-4" placeholder="ابحث عن كشاف بالاسم..." oninput="filterScouts()">
+            <div id="scoutsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[420px] overflow-y-auto pl-1"></div>
         </div>
 
-        <!-- زرار الحفظ -->
-        <div class="selected-bar">
-            <button id="saveBtn" onclick="savePatrol()" disabled class="btn-gold w-full py-4 rounded-xl text-base flex items-center justify-center gap-2">
-                <i class="fa-solid fa-shield-halved"></i>
-                <span id="saveBtnText">حفظ الطليعة</span>
-            </button>
-        </div>
+        <button id="saveBtn" onclick="savePatrol()" class="btn-gold w-full py-4 rounded-xl text-base flex justify-center gap-2 mb-6">
+            <i class="fa-solid fa-shield-halved"></i><span id="saveBtnText">حفظ الطليعة</span>
+        </button>
     </div>
 
     <script>
@@ -175,179 +71,152 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZHByanh2dHdmaWVpcW5jYmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjI2NDgsImV4cCI6MjA5NTI5ODY0OH0.ptteVMU6OYawOqiQinKg2FQ_fpP-_VdG3BJY6alkgXM';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const sessionData = localStorage.getItem('scout_leader_session');
-        if (!sessionData) window.location.href = 'index.html';
-        const currentUser = JSON.parse(sessionData);
+        const currentUser = JSON.parse(localStorage.getItem('scout_leader_session') || 'null');
+        if (!currentUser) window.location.href = 'index.html';
 
-        // هل ده edit mode؟
-        const urlParams = new URLSearchParams(window.location.search);
-        const editId = urlParams.get('edit');
-        if (editId) {
-            document.getElementById('pageTitle').textContent = 'تعديل الطليعة';
+        const isTroopLeader = currentUser.role === 'TroopLeader';
+        const editId = new URLSearchParams(window.location.search).get('edit');
+
+        if (editId) document.getElementById('pageTitle').textContent = 'تعديل الطليعة';
+        
+        // ✅ صلاحيات إضافة الطليعة:
+        // - SectorLeader/Master/General: يضيفون الطليعة مباشرة (approved)
+        // - TroopLeader: يرسل طلب معلق (pending) ينتظر موافقة SectorLeader
+        if (isTroopLeader) {
+            document.getElementById('requestBanner').classList.remove('hidden');
+            document.getElementById('saveBtnText').textContent = 'إرسال طلب للموافقة';
         }
 
-        let allScouts = [];
-        let selectedIds = new Set();
+        let allScouts = []; let selectedIds = new Set();
+        
+        // خريطة المسميات الكشفية للمرحلة الدراسية في الداتابيز (لجلب الولاد والبنات مع بعض)
+        const stageMap = {
+            'براعم': 'براعم',
+            'أشبال وزهرات': 'ابتدائي',
+            'مبتدئ ومرشدات': 'اعدادي',
+            'متقدم ورائدات': 'ثانوي'
+        };
 
-        // ===== تحميل الكشافين =====
-        async function loadScouts() {
-            let query = supabaseClient
-                .from('scouts')
-                .select('scout_id, full_name, school_stage, gender')
-                .eq('status', 'مقبول')
-                .order('full_name');
-
-            // فلترة حسب الفرقة لو مش ماستر
-            if (currentUser.role !== 'Master' && currentUser.role !== 'General') {
-                const stageMap = {
-                    'أشبال': 'ابتدائي', 'زهرات': 'ابتدائي',
-                    'كشاف مبتدئ': 'اعدادي', 'مرشدات': 'اعدادي',
-                    'كشاف متقدم': 'ثانوي', 'رائدات': 'ثانوي',
-                    'براعم': 'براعم'
-                };
-                const stage = stageMap[currentUser.troop];
-                if (stage) query = query.eq('school_stage', stage);
-            }
-
-            // لو edit، جيب الأعضاء الحاليين برضو + الكشافين اللي معندهمش طليعة
-            if (editId) {
-                query = query.or(`patrol_id.is.null,patrol_id.eq.${editId}`);
+        if (['SectorLeader', 'Master', 'General'].includes(currentUser.role)) {
+            const container = document.getElementById('troopSelectorContainer');
+            const select = document.getElementById('patrolTroop');
+            container.classList.remove('hidden');
+            
+            if (currentUser.role === 'SectorLeader') {
+                select.innerHTML = `<option value="${currentUser.sector}">${currentUser.sector}</option>`;
             } else {
-                query = query.is('patrol_id', null);
+                select.innerHTML = `
+                    <option value="براعم">براعم</option>
+                    <option value="أشبال وزهرات">أشبال وزهرات</option>
+                    <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
+                    <option value="متقدم ورائدات">متقدم ورائدات</option>
+                `;
             }
+        }
+
+        async function loadScouts() {
+            let query = supabaseClient.from('scouts').select('scout_id, full_name, school_stage, gender').eq('status', 'مقبول').order('full_name');
+
+            let targetGroup = currentUser.role === 'TroopLeader' ? currentUser.troop : (currentUser.role === 'SectorLeader' ? currentUser.sector : document.getElementById('patrolTroop')?.value || 'أشبال وزهرات');
+
+            // لو في تعديل طليعة قديمة، نجيب القطاع بتاعها
+            if (editId && ['Master', 'General'].includes(currentUser.role)) {
+                const { data: patrol } = await supabaseClient.from('patrols').select('troop').eq('id', editId).single();
+                if (patrol && patrol.troop) {
+                    targetGroup = patrol.troop;
+                    if(document.getElementById('patrolTroop')) document.getElementById('patrolTroop').value = targetGroup;
+                }
+            }
+
+            const dbStage = stageMap[targetGroup];
+            if (dbStage) {
+                query = query.eq('school_stage', dbStage); // ده هيجيب كل اللي في ابتدائي مثلاً (ولاد وبنات)
+            }
+
+            if (editId) query = query.or(`patrol_id.is.null,patrol_id.eq.${editId}`);
+            else query = query.is('patrol_id', null);
 
             const { data, error } = await query;
-
-            if (error) {
-                document.getElementById('scoutsList').innerHTML = `<p class="text-red-400 text-sm col-span-2">خطأ: ${error.message}</p>`;
-                return;
-            }
-
+            if (error) return;
             allScouts = data || [];
 
-            // لو edit، محدد الأعضاء الحاليين
-            if (editId) {
-                const { data: patrol } = await supabaseClient.from('patrols').select('name, yell').eq('id', editId).single();
-                if (patrol) {
-                    document.getElementById('patrolName').value = patrol.name;
+            if (editId && selectedIds.size === 0) {
+                const { data: patrol } = await supabaseClient.from('patrols').select('name, yell, troop').eq('id', editId).single();
+                if (patrol) { 
+                    document.getElementById('patrolName').value = patrol.name; 
                     document.getElementById('patrolYell').value = patrol.yell || '';
                 }
                 const { data: members } = await supabaseClient.from('scouts').select('scout_id').eq('patrol_id', editId);
                 if (members) members.forEach(m => selectedIds.add(m.scout_id));
+                document.getElementById('selectedCount').textContent = `${selectedIds.size} محدد`;
             }
-
             renderScouts(allScouts);
         }
 
         function renderScouts(scouts) {
             const list = document.getElementById('scoutsList');
-
-            if (scouts.length === 0) {
-                list.innerHTML = `<div class="col-span-2 text-center text-gray-500 py-8 text-sm"><i class="fa-solid fa-user-slash block text-2xl mb-2"></i>مفيش كشافين متاحين</div>`;
-                return;
-            }
-
             list.innerHTML = '';
             scouts.forEach(s => {
                 const isSelected = selectedIds.has(s.scout_id);
-                const initials = s.full_name.trim().split(' ').map(w => w[0]).slice(0, 2).join('');
                 const div = document.createElement('div');
                 div.className = `scout-card ${isSelected ? 'selected' : ''}`;
-                div.dataset.id = s.scout_id;
-                div.innerHTML = `
-                    <div class="check-icon"><i class="fa-solid fa-check"></i></div>
-                    <div class="avatar-initials">${initials}</div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-white text-sm font-medium truncate">${s.full_name}</p>
-                        <p class="text-gray-500 text-xs">${s.school_stage || ''} · ${s.gender || ''}</p>
-                    </div>
-                `;
-                div.onclick = () => toggleScout(div, s.scout_id);
+                div.innerHTML = `<div class="check-icon"><i class="fa-solid fa-check"></i></div><div class="avatar-initials">${s.full_name[0]}</div><div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate">${s.full_name}</p><p class="text-gray-500 text-xs">${s.school_stage || ''} · ${s.gender || ''}</p></div>`;
+                div.onclick = () => {
+                    isSelected ? selectedIds.delete(s.scout_id) : selectedIds.add(s.scout_id);
+                    document.getElementById('selectedCount').textContent = `${selectedIds.size} محدد`;
+                    renderScouts(scouts); 
+                };
                 list.appendChild(div);
             });
-
-            updateCounter();
-        }
-
-        function toggleScout(el, id) {
-            if (selectedIds.has(id)) {
-                selectedIds.delete(id);
-                el.classList.remove('selected');
-            } else {
-                selectedIds.add(id);
-                el.classList.add('selected');
-            }
-            updateCounter();
-        }
-
-        function updateCounter() {
-            const count = selectedIds.size;
-            document.getElementById('selectedCount').textContent = `${count} محدد`;
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = count === 0 && !document.getElementById('patrolName').value.trim();
-            btn.disabled = false; // نفعّل الزرار دايما عشان يقدر يحفظ بدون أعضاء لو عايز
         }
 
         function filterScouts() {
             const term = document.getElementById('searchScout').value.toLowerCase().trim();
-            const filtered = term ? allScouts.filter(s => s.full_name.toLowerCase().includes(term)) : allScouts;
-            renderScouts(filtered);
+            renderScouts(term ? allScouts.filter(s => s.full_name.toLowerCase().includes(term)) : allScouts);
         }
 
-        // ===== حفظ الطليعة =====
         async function savePatrol() {
             const name = document.getElementById('patrolName').value.trim();
             const yell = document.getElementById('patrolYell').value.trim();
-
-            if (!name) {
-                document.getElementById('patrolName').focus();
-                document.getElementById('patrolName').style.borderColor = '#e53e3e';
-                setTimeout(() => document.getElementById('patrolName').style.borderColor = '', 2000);
-                return;
-            }
+            if (!name) return alert("اسم الطليعة مطلوب");
 
             const btn = document.getElementById('saveBtn');
             btn.disabled = true;
-            document.getElementById('saveBtnText').textContent = 'جاري الحفظ...';
+
+            let targetTroop = currentUser.troop;
+            if (['SectorLeader', 'Master', 'General'].includes(currentUser.role)) {
+                targetTroop = document.getElementById('patrolTroop').value;
+            }
 
             try {
-                let patrolId = editId;
-
-                if (editId) {
-                    // تعديل
-                    const { error } = await supabaseClient.from('patrols').update({ name, yell }).eq('id', editId);
-                    if (error) throw error;
-                    // فك الكشافين القدام
-                    await supabaseClient.from('scouts').update({ patrol_id: null }).eq('patrol_id', editId);
+                if (isTroopLeader) {
+                    // ⏳ قائد الفرقة يرسل طلب معلق
+                    const reqData = { type: editId ? 'edit' : 'create', patrol_id: editId || null, patrol_name: name, patrol_yell: yell, scout_ids: JSON.stringify(Array.from(selectedIds)), requested_by: currentUser.username, troop: targetTroop, status: 'pending' };
+                    await supabaseClient.from('patrol_requests').insert([reqData]);
+                    alert('تم الإرسال للماستر للموافقة!');
                 } else {
-                    // إضافة جديدة
-                    const { data, error } = await supabaseClient
-                        .from('patrols')
-                        .insert([{ name, yell, troop: currentUser.troop }])
-                        .select();
-                    if (error) throw error;
-                    patrolId = data[0].id;
+                    // ✅ SectorLeader/Master/General يضيفون الطليعة مباشرة
+                    let patrolId = editId;
+                    if (editId) {
+                        await supabaseClient.from('patrols').update({ name, yell, troop: targetTroop }).eq('id', editId);
+                        await supabaseClient.from('scouts').update({ patrol_id: null }).eq('patrol_id', editId);
+                    } else {
+                        const { data } = await supabaseClient.from('patrols').insert([{ name, yell, troop: targetTroop }]).select();
+                        patrolId = data[0].id;
+                    }
+                    if (selectedIds.size > 0) {
+                        await supabaseClient.from('scouts').update({ patrol_id: patrolId }).in('scout_id', Array.from(selectedIds));
+                    }
+                    alert(editId ? 'تم التعديل بنجاح!' : 'تم تأسيس الطليعة بنجاح بدون موافقة!');
                 }
-
-                // إضافة الكشافين الجدد
-                if (selectedIds.size > 0) {
-                    const { error } = await supabaseClient
-                        .from('scouts')
-                        .update({ patrol_id: patrolId })
-                        .in('scout_id', Array.from(selectedIds));
-                    if (error) throw error;
-                }
-
-                alert(editId ? 'تم تعديل الطليعة بنجاح!' : 'تم تأسيس الطليعة بنجاح!');
                 window.location.href = 'patrols.html';
-
-            } catch (err) {
-                alert('خطأ: ' + err.message);
-                btn.disabled = false;
-                document.getElementById('saveBtnText').textContent = 'حفظ الطليعة';
+            } catch (err) { 
+                alert(err.message); 
+                btn.disabled = false; 
             }
         }
 
+        // أضفنا استدعاء الدالة هنا عشان تشتغل أول ما الصفحة تفتح
         loadScouts();
     </script>
 </body>
