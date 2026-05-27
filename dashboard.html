@@ -28,6 +28,8 @@
         .tab-btn { color: #888; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
         .tab-btn:hover { color: var(--gold-lt); }
         .tab-btn.active { border-bottom: 3px solid var(--gold); color: var(--gold); font-weight: bold; }
+        .count-badge { display: inline-block; background: rgba(201,168,76,0.15); color: var(--gold); font-size: 0.7rem; font-weight: 700; padding: 2px 10px; border-radius: 12px; margin-right: 6px; border: 1px solid rgba(201,168,76,0.3); white-space: nowrap; }
+        .tab-btn.active .count-badge { background: rgba(201,168,76,0.25); border-color: rgba(201,168,76,0.5); }
         .table-card { background: var(--dark2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 30px rgba(0,0,0,0.5); }
         .tabs-bar { background: var(--dark3); border-bottom: 1px solid var(--border); }
         thead tr { background: var(--dark3); border-bottom: 1px solid var(--border); color: var(--gold); font-size: 0.8rem; letter-spacing: 0.05em; }
@@ -97,6 +99,7 @@
     <nav class="p-4 sticky top-0 z-10">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
+                <button onclick="window.location.href='home.html'" class="text-xl text-[var(--gold)] hover:text-white transition" title="الرئيسية"><i class="fa-solid fa-house"></i></button>
                 <img src="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png" class="w-12 h-12 object-contain drop-shadow-lg rounded-full">
                 <div><p class="text-xs font-bold tracking-widest" style="color: var(--gold)">AVA KIROLOS SCOUT GROUP</p><p class="text-xs" style="color: #666;">لوحة تحكم الكشافة</p></div>
             </div>
@@ -121,16 +124,26 @@
 
         <div class="table-card">
             <div class="tabs-bar flex overflow-x-auto" id="tabsContainer">
-                <button class="tab-btn active p-4 min-w-max" onclick="filterData('الكل', this)">كل المجموعة</button>
-                <button class="tab-btn p-4 min-w-max" onclick="filterData('براعم', this)">براعم</button>
-                <button class="tab-btn p-4 min-w-max" onclick="filterData('أشبال وزهرات', this)">أشبال وزهرات</button>
-                <button class="tab-btn p-4 min-w-max" onclick="filterData('مبتدئ ومرشدات', this)">مبتدئ ومرشدات</button>
-                <button class="tab-btn p-4 min-w-max" onclick="filterData('متقدم ورائدات', this)">متقدم ورائدات</button>
+                <button class="tab-btn active p-4 min-w-max" onclick="filterData('الكل', this)">
+                    كل المجموعة <span class="count-badge" id="count-الكل">0</span>
+                </button>
+                <button class="tab-btn p-4 min-w-max" onclick="filterData('براعم', this)">
+                    براعم <span class="count-badge" id="count-براعم">0</span>
+                </button>
+                <button class="tab-btn p-4 min-w-max" onclick="filterData('أشبال وزهرات', this)">
+                    أشبال وزهرات <span class="count-badge" id="count-أشبال وزهرات">0</span>
+                </button>
+                <button class="tab-btn p-4 min-w-max" onclick="filterData('مبتدئ ومرشدات', this)">
+                    مبتدئ ومرشدات <span class="count-badge" id="count-مبتدئ ومرشدات">0</span>
+                </button>
+                <button class="tab-btn p-4 min-w-max" onclick="filterData('متقدم ورائدات', this)">
+                    متقدم ورائدات <span class="count-badge" id="count-متقدم ورائدات">0</span>
+                </button>
             </div>
 
             <div id="dataView" class="overflow-x-auto">
                 <table class="w-full text-right border-collapse whitespace-nowrap" id="dataTable">
-                    <thead><tr><th class="p-4">الصورة</th><th class="p-4">الكود الكشفي</th><th class="p-4">الاسم الرباعي</th><th class="p-4">الفرقة الكشفية</th><th class="p-4">رقم الموبايل</th><th class="p-4 text-center">إجراءات</th></tr></thead>
+                    <thead><tr><th class="p-4">الصورة</th><th class="p-4">الكود الكشفي</th><th class="p-4">الاسم الرباعي</th><th class="p-4">الفرقة الكشفية</th><th class="p-4">الطليعة</th><th class="p-4"></th>رقم الموبايل</th><th class="p-4 text-center">إجراءات</th></tr></thead>
                     <tbody id="scoutsTableBody"></tbody>
                 </table>
             </div>
