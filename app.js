@@ -553,6 +553,18 @@ function setInputValue(id, value) {
 }
 
 function getFormData() {
+    const certSelect = document.getElementById('formCertificate');
+    const certOtherInput = document.getElementById('formCertificateOther');
+    let certificateValue = null;
+    
+    if (certSelect && certSelect.value) {
+        if (certSelect.value === 'other' && certOtherInput) {
+            certificateValue = certOtherInput.value.trim() || null;
+        } else {
+            certificateValue = certSelect.value;
+        }
+    }
+    
     return {
         full_name: readInputValue('formFullName'),
         birth_date: readInputValue('formBirthDate'),
@@ -563,7 +575,7 @@ function getFormData() {
         address: readInputValue('formAddress'),
         school_stage: readInputValue('formSchoolStage'),
         school_year: readInputValue('formSchoolYear'),
-        certificate: readInputValue('formCertificate'),
+        certificate: certificateValue,
         personal_email: readInputValue('formPersonalEmail'),
         facebook_account: readInputValue('formFacebook'),
         instagram_account: readInputValue('formInstagram'),
@@ -604,8 +616,28 @@ function openEditModal(id) {
     setInputValue('formBirthDate', scout.birth_date);
     setInputValue('formGender', scout.gender);
     setInputValue('formSchoolStage', scout.school_stage);
+    
+    // تحديث الـ dropdowns بناءً على المرحلة
+    updateSchoolYearAndCertificateInModal();
+    
     setInputValue('formSchoolYear', scout.school_year);
-    setInputValue('formCertificate', scout.certificate);
+    
+    // معالجة الشهادة
+    const certSelect = document.getElementById('formCertificate');
+    const certOtherContainer = document.getElementById('certificateOtherContainerModal');
+    const certOtherInput = document.getElementById('formCertificateOther');
+    
+    const knownCerts = ['عام', 'IG', 'IB', 'American', 'باكالوريا', 'صنايع', 'تجاري'];
+    if (scout.certificate && !knownCerts.includes(scout.certificate)) {
+        // لو الشهادة مش من الاختيارات المعروفة، يبقى "أخرى"
+        certSelect.value = 'other';
+        if (certOtherContainer) certOtherContainer.style.display = 'block';
+        if (certOtherInput) certOtherInput.value = scout.certificate;
+    } else {
+        setInputValue('formCertificate', scout.certificate);
+        if (certOtherContainer) certOtherContainer.style.display = 'none';
+    }
+    
     setInputValue('formPersonalPhone', scout.personal_phone);
     setInputValue('formFatherPhone', scout.father_phone);
     setInputValue('formMotherPhone', scout.mother_phone);
@@ -648,7 +680,102 @@ async function deleteScout(id) {
                 status: 'pending'
             }]);
             if (error) throw error;
-            alert('تم إرسال طلب الحذف للمراجعة والموافقة.');
+            alert('تم إرسال طلب الحذف للموافقة.');
+        } else {
+            const { error } = await supabaseClient.from('scouts').delete().eq('scout_id', id);
+            if (error) throw error;
+            alert('تم حذف الكشاف بنجاح.');
+        }
+        fetchScouts();
+    } catch (err) {
+        alert('فشل الحذف: ' + (err.message || err));
+    }
+}
+
+// دوال تحديث السنة الدراسية والشهادة في المودال
+function updateSchoolYearAndCertificateInModal() {
+    const stage = document.getElementById('formSchoolStage').value;
+    const yearSelect = document.getElementById('formSchoolYear');
+    const certSelect = document.getElementById('formCertificate');
+    const certOtherContainer = document.getElementById('certificateOtherContainerModal');
+    
+    // حفظ القيم الحالية
+    const currentYear = yearSelect.value;
+    const currentCert = certSelect.value;
+    
+    // مسح الاختيارات القديمة
+    yearSelect.innerHTML = '<option value="">-- اختار --</option>';
+    certSelect.innerHTML = '<option value="">-- اختار --</option>';
+    if (certOtherContainer) certOtherContainer.style.display = 'none';
+    
+    if (stage === 'براعم') {
+        yearSelect.innerHTML = '<option value="براعم">براعم</option>';
+        certSelect.innerHTML = '<option value="عام">عام</option>';
+        
+    } else if (stage === 'ابتدائي') {
+        yearSelect.innerHTML = `
+            <option value="">-- اختار --</option>
+            <option value="أولى">أولى</option>
+            <option value="تانية">تانية</option>
+            <option value="تالتة">تالتة</option>
+            <option value="رابعة">رابعة</option>
+            <option value="خامسة">خامسة</option>
+            <option value="سادسة">سادسة</option>
+        `;
+        certSelect.innerHTML = '<option value="عام">عام</option>';
+        
+    } else if (stage === 'اعدادي') {
+        yearSelect.innerHTML = `
+            <option value="">-- اختار --</option>
+            <option value="أولى">أولى</option>
+            <option value="تانية">تانية</option>
+            <option value="تالتة">تالتة</option>
+        `;
+        certSelect.innerHTML = '<option value="عام">عام</option>';
+        
+    } else if (stage === 'ثانوي') {
+        yearSelect.innerHTML = `
+            <option value="">-- اختار --</option>
+            <option value="أولى">أولى</option>
+            <option value="تانية">تانية</option>
+            <option value="تالتة">تالتة</option>
+        `;
+        certSelect.innerHTML = `
+            <option value="">-- اختار --</option>
+            <option value="عام">عام</option>
+            <option value="IG">IG</option>
+            <option value="IB">IB</option>
+            <option value="American">American</option>
+            <option value="باكالوريا">باكالوريا</option>
+            <option value="صنايع">صنايع</option>
+            <option value="تجاري">تجاري</option>
+            <option value="other">أخرى (اكتب بنفسك)</option>
+        `;
+    }
+    
+    // استرجاع القيم القديمة لو موجودة
+    if (currentYear && Array.from(yearSelect.options).some(opt => opt.value === currentYear)) {
+        yearSelect.value = currentYear;
+    }
+    if (currentCert && Array.from(certSelect.options).some(opt => opt.value === currentCert)) {
+        certSelect.value = currentCert;
+    }
+}
+
+function handleCertificateChangeInModal() {
+    const certSelect = document.getElementById('formCertificate');
+    const certOtherContainer = document.getElementById('certificateOtherContainerModal');
+    
+    if (certOtherContainer) {
+        if (certSelect.value === 'other') {
+            certOtherContainer.style.display = 'block';
+        } else {
+            certOtherContainer.style.display = 'none';
+            const otherInput = document.getElementById('formCertificateOther');
+            if (otherInput) otherInput.value = '';
+        }
+    }
+}('تم إرسال طلب الحذف للمراجعة والموافقة.');
         } else {
             const { error } = await supabaseClient.from('scouts').delete().eq('scout_id', id);
             if (error) throw error;
