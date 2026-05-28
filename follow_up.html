@@ -171,12 +171,13 @@
             document.getElementById('sectorLabel').textContent = `فرقة ${currentUser.troop}`;
         }
 
-        async function loadTasks() {
+       async function loadTasks() {
             const tabsContainer = document.getElementById('tabsContainer');
             tabsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 w-full"><i class="fa-solid fa-spinner fa-spin mr-2"></i> جاري التحميل...</div>';
 
             let query = supabaseClient.from('follow_up_tasks').select('*').order('task_date', { ascending: false });
 
+            // لو مش ماستر أو جنرال، بنجيب مهام القطاع الأول كفلترة مبدئية
             if (!isMasterOrGeneral && userSector) {
                 query = query.eq('sector', userSector);
             }
@@ -188,10 +189,30 @@
                 return;
             }
 
-            allTasks = data || [];
+            let rawTasks = data || [];
+
+            // الفحص الذكي: لو المستخدم الحالي قائد فرقة (TroopLeader)، بنعرض له فقط المهام اللي اسمه مكتوب في الـ notes بتاعتها
+            if (currentUser.role === 'TroopLeader') {
+                allTasks = rawTasks.filter(task => {
+                    if (!task.notes) return false;
+                    // بنشيك لو الـ notes تحتوي على اسم القائد الكامل الحالي
+                    return task.notes.includes(`[${currentUser.full_name}`);
+                });
+            } else {
+                // لو قائد قطاع أو ماستر بيشوف كل المهام المتاحة
+                allTasks = rawTasks;
+            }
 
             if (allTasks.length === 0) {
-                tabsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 w-full">مفيش مهام افتقاد حالياً</div>';
+                tabsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 w-full">مفيش مهام افتقاد حالياً تخصك</div>';
+                const taskContent = document.getElementById('taskContent');
+                if (taskContent) {
+                    taskContent.innerHTML = `
+                        <div class="content-card text-center text-gray-500">
+                            <i class="fa-solid fa-clipboard-list text-5xl mb-3 opacity-50"></i>
+                            <p>مفيش مهام افتقاد حالياً معينة لك</p>
+                        </div>`;
+                }
                 return;
             }
 
@@ -205,6 +226,12 @@
                 const dateObj = new Date(task.task_date);
                 const dateStr = dateObj.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
                 
+                // تنظيف الملاحظات لعرض اسم المهمة بشكل أشيك بدون الكود المربع لو لقائد الفرقة
+                let displayNotes = '';
+                if(task.notes) {
+                    displayNotes = task.notes.replace(/\[.*?\]\s*/, ''); // بيشيل [اسم القائد] من العرض في التاب عشان الشكل
+                }
+
                 btn.innerHTML = `
                     <i class="fa-solid fa-calendar-day ml-1"></i>
                     ${dateStr}
