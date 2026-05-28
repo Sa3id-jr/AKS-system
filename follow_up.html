@@ -66,20 +66,48 @@
 
     <!-- Modal: إنشاء مهمة جديدة -->
     <div id="newTaskModal" class="modal-overlay hidden">
-        <div class="modal-box">
+        <div class="modal-box" style="max-width: 600px;">
             <div class="flex justify-between items-center p-5 border-b border-[var(--border)]">
                 <h3 class="font-bold text-white text-lg">إنشاء مهمة افتقاد جديدة</h3>
                 <button onclick="closeNewTaskModal()" class="text-gray-500 hover:text-red-400 text-xl"><i class="fa-solid fa-circle-xmark"></i></button>
             </div>
             <div class="p-5">
+                <!-- التاريخ -->
                 <div class="mb-4">
                     <label class="form-label">تاريخ المهمة *</label>
                     <input type="date" id="newTaskDate" class="form-input" required>
                 </div>
+
+                <!-- اختيار القائد -->
+                <div class="mb-4">
+                    <label class="form-label">اختر القائد المسؤول عن الافتقاد *</label>
+                    <select id="taskLeaderSelect" class="form-input" onchange="onLeaderSelected()">
+                        <option value="">-- اختر قائد --</option>
+                    </select>
+                </div>
+
+                <!-- قائمة الكشافين -->
+                <div class="mb-4" id="scoutsSelectionSection" style="display:none;">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="form-label" style="margin-bottom:0;">اختر الكشافين *</label>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="selectAllScouts()" class="text-xs text-[var(--gold)] hover:underline">تحديد الكل</button>
+                            <span class="text-gray-600">|</span>
+                            <button type="button" onclick="deselectAllScouts()" class="text-xs text-gray-400 hover:text-white hover:underline">إلغاء الكل</button>
+                        </div>
+                    </div>
+                    <div id="scoutsCheckList" class="border border-[rgba(201,168,76,0.2)] rounded-lg overflow-y-auto" style="max-height: 220px; background: var(--dark3);">
+                        <!-- الكشافين هيتضافوا هنا -->
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">تم تحديد <span id="selectedScoutsCount" class="text-[var(--gold)] font-bold">0</span> كشاف</p>
+                </div>
+
+                <!-- ملاحظات -->
                 <div class="mb-4">
                     <label class="form-label">ملاحظات (اختياري)</label>
-                    <textarea id="newTaskNotes" class="form-input" rows="3" placeholder="مثال: افتقاد أسبوعي"></textarea>
+                    <textarea id="newTaskNotes" class="form-input" rows="2" placeholder="مثال: افتقاد أسبوعي"></textarea>
                 </div>
+
                 <div class="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
                     <button onclick="closeNewTaskModal()" class="btn-outline px-4 py-2 rounded-lg text-sm">إلغاء</button>
                     <button onclick="createNewTask()" class="btn-gold px-6 py-2 rounded-lg text-sm">إنشاء المهمة</button>
@@ -102,6 +130,8 @@
 
         let allTasks = [];
         let currentTaskId = null;
+        let availableLeaders = [];   // القادة في نفس القطاع
+        let availableScouts = [];    // الكشافين بتاعين القائد المختار
 
         // تحديد القطاع
         function getUserSector() {
@@ -321,10 +351,125 @@
             }
         }
 
-        function openNewTaskModal() {
+        async function openNewTaskModal() {
             document.getElementById('newTaskDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('newTaskNotes').value = '';
+            document.getElementById('scoutsSelectionSection').style.display = 'none';
+            document.getElementById('scoutsCheckList').innerHTML = '';
+            document.getElementById('selectedScoutsCount').textContent = '0';
+
+            // جيب القادة في نفس القطاع
+            const leaderSelect = document.getElementById('taskLeaderSelect');
+            leaderSelect.innerHTML = '<option value="">جاري التحميل...</option>';
+
+            const sectorTroopMap = {
+                'براعم': ['براعم'],
+                'ابتدائي': ['أشبال وزهرات', 'أشبال', 'زهرات'],
+                'اعدادي': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'],
+                'ثانوي': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات']
+            };
+            const allowedTroops = sectorTroopMap[userSector] || [];
+
+            let query = supabaseClient
+                .from('leaders')
+                .select('id, full_name, troop, role')
+                .eq('status', 'نشط')
+                .eq('role', 'TroopLeader');
+
+            if (allowedTroops.length > 0) {
+                query = query.in('troop', allowedTroops);
+            }
+
+            const { data: leaders, error } = await query;
+
+            leaderSelect.innerHTML = '<option value="">-- اختر قائد --</option>';
+
+            if (error || !leaders || leaders.length === 0) {
+                leaderSelect.innerHTML = '<option value="">مفيش قادة في القطاع ده</option>';
+            } else {
+                availableLeaders = leaders;
+                leaders.forEach(l => {
+                    const opt = document.createElement('option');
+                    opt.value = l.id;
+                    opt.textContent = `${l.full_name} (${l.troop})`;
+                    opt.dataset.troop = l.troop;
+                    leaderSelect.appendChild(opt);
+                });
+            }
+
             document.getElementById('newTaskModal').classList.remove('hidden');
+        }
+
+        async function onLeaderSelected() {
+            const leaderSelect = document.getElementById('taskLeaderSelect');
+            const selectedOption = leaderSelect.options[leaderSelect.selectedIndex];
+            const troop = selectedOption?.dataset?.troop;
+            const section = document.getElementById('scoutsSelectionSection');
+            const list = document.getElementById('scoutsCheckList');
+
+            if (!troop) {
+                section.style.display = 'none';
+                return;
+            }
+
+            list.innerHTML = '<div class="p-4 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جاري التحميل...</div>';
+            section.style.display = 'block';
+
+            // خريطة الفرقة → school_stage
+            const troopStageMap = {
+                'براعم': 'براعم',
+                'أشبال وزهرات': 'ابتدائي', 'أشبال': 'ابتدائي', 'زهرات': 'ابتدائي',
+                'مبتدئ ومرشدات': 'اعدادي', 'كشاف مبتدئ': 'اعدادي', 'مرشدات': 'اعدادي',
+                'متقدم ورائدات': 'ثانوي', 'كشاف متقدم': 'ثانوي', 'رائدات': 'ثانوي'
+            };
+            const stage = troopStageMap[troop];
+
+            const { data: scouts, error } = await supabaseClient
+                .from('scouts')
+                .select('scout_id, full_name, personal_phone')
+                .eq('school_stage', stage)
+                .eq('status', 'مقبول')
+                .order('full_name');
+
+            if (error || !scouts || scouts.length === 0) {
+                list.innerHTML = '<div class="p-4 text-center text-gray-500">مفيش كشافين في الفرقة دي</div>';
+                availableScouts = [];
+                return;
+            }
+
+            availableScouts = scouts;
+            list.innerHTML = '';
+            scouts.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 px-4 py-2 border-b border-[rgba(201,168,76,0.08)] last:border-0';
+                div.innerHTML = `
+                    <input type="checkbox" class="scout-checkbox" value="${s.scout_id}"
+                           data-name="${s.full_name}" data-phone="${s.personal_phone || ''}"
+                           onchange="updateSelectedCount()"
+                           style="width:18px;height:18px;cursor:pointer;accent-color:var(--gold);">
+                    <div class="flex-1">
+                        <p class="text-white text-sm font-medium">${s.full_name}</p>
+                        <p class="text-gray-500 text-xs font-mono" dir="ltr">${s.personal_phone || 'لا يوجد رقم'}</p>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const checked = document.querySelectorAll('.scout-checkbox:checked').length;
+            document.getElementById('selectedScoutsCount').textContent = checked;
+        }
+
+        function selectAllScouts() {
+            document.querySelectorAll('.scout-checkbox').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        }
+
+        function deselectAllScouts() {
+            document.querySelectorAll('.scout-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
         }
 
         function closeNewTaskModal() {
@@ -334,40 +479,41 @@
         async function createNewTask() {
             const taskDate = document.getElementById('newTaskDate').value;
             const notes = document.getElementById('newTaskNotes').value.trim();
+            const leaderSelect = document.getElementById('taskLeaderSelect');
+            const selectedLeaderId = leaderSelect.value;
+            const selectedLeaderName = leaderSelect.options[leaderSelect.selectedIndex]?.textContent || '';
 
             if (!taskDate) {
                 alert('من فضلك اختر تاريخ المهمة');
                 return;
             }
 
-            // جيب كل الكشافين في القطاع
-            const sectorStageMap = {
-                'براعم': 'براعم',
-                'ابتدائي': 'ابتدائي',
-                'اعدادي': 'اعدادي',
-                'ثانوي': 'ثانوي'
-            };
-            const stage = sectorStageMap[userSector];
-
-            const { data: scouts, error: scoutsError } = await supabaseClient
-                .from('scouts')
-                .select('scout_id, full_name, personal_phone, school_stage')
-                .eq('school_stage', stage)
-                .eq('status', 'مقبول');
-
-            if (scoutsError || !scouts || scouts.length === 0) {
-                alert('مفيش كشافين في القطاع ده!');
+            if (!selectedLeaderId) {
+                alert('من فضلك اختر القائد المسؤول');
                 return;
             }
 
-            // إنشاء المهمة
+            // جيب الكشافين المحددين
+            const checkedBoxes = document.querySelectorAll('.scout-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('من فضلك اختر كشاف واحد على الأقل');
+                return;
+            }
+
+            const selectedScouts = Array.from(checkedBoxes).map(cb => ({
+                scout_id: cb.value,
+                full_name: cb.dataset.name,
+                phone: cb.dataset.phone || null
+            }));
+
+            // إنشاء المهمة مع اسم القائد
             const { data: newTask, error: taskError } = await supabaseClient
                 .from('follow_up_tasks')
                 .insert([{
                     task_date: taskDate,
                     sector: userSector,
                     created_by: currentUser.full_name,
-                    notes: notes || null
+                    notes: notes ? `[${selectedLeaderName}] ${notes}` : `[${selectedLeaderName}]`
                 }])
                 .select()
                 .single();
@@ -377,12 +523,12 @@
                 return;
             }
 
-            // إضافة سجلات الكشافين
-            const records = scouts.map(scout => ({
+            // إضافة سجلات الكشافين المختارين
+            const records = selectedScouts.map(scout => ({
                 task_id: newTask.id,
                 scout_id: scout.scout_id,
                 full_name: scout.full_name,
-                phone: scout.personal_phone
+                phone: scout.phone
             }));
 
             const { error: recordsError } = await supabaseClient
@@ -394,7 +540,7 @@
                 return;
             }
 
-            alert(`تم إنشاء المهمة بنجاح! (${scouts.length} كشاف)`);
+            alert(`تم إنشاء المهمة بنجاح! (${selectedScouts.length} كشاف)`);
             closeNewTaskModal();
             loadTasks();
         }
