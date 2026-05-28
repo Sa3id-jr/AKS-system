@@ -81,7 +81,7 @@
                     </div>
                     <div>
                         <label class="form-label">المرحلة الدراسية</label>
-                        <select id="formSchoolStage" class="form-input">
+                        <select id="formSchoolStage" class="form-input" onchange="updateSchoolYearAndCertificate()">
                             <option value="">-- اختار --</option>
                             <option value="براعم">براعم</option>
                             <option value="ابتدائي">ابتدائي</option>
@@ -89,8 +89,22 @@
                             <option value="ثانوي">ثانوي</option>
                         </select>
                     </div>
-                    <div><label class="form-label">السنة الدراسية</label><input id="formSchoolYear" type="text" class="form-input" placeholder="مثال: تانية"></div>
-                    <div><label class="form-label">المؤهل / الشهادة</label><input id="formCertificate" type="text" class="form-input" placeholder="مثال: عام"></div>
+                    <div>
+                        <label class="form-label">السنة الدراسية</label>
+                        <select id="formSchoolYear" class="form-input">
+                            <option value="">-- اختار المرحلة الأول --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">المؤهل / الشهادة</label>
+                        <select id="formCertificate" class="form-input" onchange="handleCertificateChange()">
+                            <option value="">-- اختار المرحلة الأول --</option>
+                        </select>
+                    </div>
+                    <div id="certificateOtherContainer" style="display: none;">
+                        <label class="form-label">اكتب نوع الشهادة</label>
+                        <input id="formCertificateOther" type="text" class="form-input" placeholder="اكتب نوع الشهادة">
+                    </div>
                 </div>
 
                 <div class="gold-divider"></div>
@@ -299,7 +313,13 @@
                 has_diseases: document.getElementById('formHasDiseases').value || 'لا',
                 diseases_details: document.getElementById('formDiseasesDetails').value.trim() || null,
                 hobbies: document.getElementById('formHobbies').value.trim() || null,
-                certificate: document.getElementById('formCertificate').value.trim() || null,
+                certificate: (() => {
+                    const certValue = document.getElementById('formCertificate').value.trim();
+                    if (certValue === 'other') {
+                        return document.getElementById('formCertificateOther').value.trim() || null;
+                    }
+                    return certValue || null;
+                })(),
                 photo_url: document.getElementById('formPhotoUrl').value.trim() || null,
                 // حالة الكشاف الأولية:
                 // - Master/General/SectorLeader: "مقبول" ✅ (موافقة تلقائية)
@@ -357,6 +377,85 @@
         }
 
         fetchNextScoutId();
+
+        // دالة تحديث السنة الدراسية والشهادة بناءً على المرحلة
+        function updateSchoolYearAndCertificate() {
+            const stage = document.getElementById('formSchoolStage').value;
+            const yearSelect = document.getElementById('formSchoolYear');
+            const certSelect = document.getElementById('formCertificate');
+            const certOtherContainer = document.getElementById('certificateOtherContainer');
+            
+            // مسح الاختيارات القديمة
+            yearSelect.innerHTML = '<option value="">-- اختار --</option>';
+            certSelect.innerHTML = '<option value="">-- اختار --</option>';
+            certOtherContainer.style.display = 'none';
+            
+            if (stage === 'براعم') {
+                // براعم: سنة واحدة فقط
+                yearSelect.innerHTML = '<option value="براعم">براعم</option>';
+                yearSelect.value = 'براعم';
+                certSelect.innerHTML = '<option value="عام">عام</option>';
+                certSelect.value = 'عام';
+                
+            } else if (stage === 'ابتدائي') {
+                // ابتدائي: من أولى لسادسة
+                yearSelect.innerHTML = `
+                    <option value="">-- اختار --</option>
+                    <option value="أولى">أولى</option>
+                    <option value="تانية">تانية</option>
+                    <option value="تالتة">تالتة</option>
+                    <option value="رابعة">رابعة</option>
+                    <option value="خامسة">خامسة</option>
+                    <option value="سادسة">سادسة</option>
+                `;
+                certSelect.innerHTML = '<option value="عام">عام</option>';
+                certSelect.value = 'عام';
+                
+            } else if (stage === 'اعدادي') {
+                // اعدادي: أولى وتانية وتالتة
+                yearSelect.innerHTML = `
+                    <option value="">-- اختار --</option>
+                    <option value="أولى">أولى</option>
+                    <option value="تانية">تانية</option>
+                    <option value="تالتة">تالتة</option>
+                `;
+                certSelect.innerHTML = '<option value="عام">عام</option>';
+                certSelect.value = 'عام';
+                
+            } else if (stage === 'ثانوي') {
+                // ثانوي: أولى وتانية وتالتة + اختيارات متعددة للشهادة
+                yearSelect.innerHTML = `
+                    <option value="">-- اختار --</option>
+                    <option value="أولى">أولى</option>
+                    <option value="تانية">تانية</option>
+                    <option value="تالتة">تالتة</option>
+                `;
+                certSelect.innerHTML = `
+                    <option value="">-- اختار --</option>
+                    <option value="عام">عام</option>
+                    <option value="IG">IG</option>
+                    <option value="IB">IB</option>
+                    <option value="American">American</option>
+                    <option value="باكالوريا">باكالوريا</option>
+                    <option value="صنايع">صنايع</option>
+                    <option value="تجاري">تجاري</option>
+                    <option value="other">أخرى (اكتب بنفسك)</option>
+                `;
+            }
+        }
+        
+        // دالة معالجة اختيار "أخرى" في الشهادة
+        function handleCertificateChange() {
+            const certSelect = document.getElementById('formCertificate');
+            const certOtherContainer = document.getElementById('certificateOtherContainer');
+            
+            if (certSelect.value === 'other') {
+                certOtherContainer.style.display = 'block';
+            } else {
+                certOtherContainer.style.display = 'none';
+                document.getElementById('formCertificateOther').value = '';
+            }
+        }
     </script>
 </body>
 </html>
