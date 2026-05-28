@@ -775,17 +775,6 @@ function handleCertificateChangeInModal() {
             if (otherInput) otherInput.value = '';
         }
     }
-}('تم إرسال طلب الحذف للمراجعة والموافقة.');
-        } else {
-            const { error } = await supabaseClient.from('scouts').delete().eq('scout_id', id);
-            if (error) throw error;
-            allScouts = allScouts.filter(s => s.scout_id !== id);
-            renderTable();
-            alert('تم حذف الكشاف.');
-        }
-    } catch (err) {
-        alert('مشكلة: ' + (err.message || err));
-    }
 }
 
 document.getElementById('formSubmitBtn')?.addEventListener('click', () => {
