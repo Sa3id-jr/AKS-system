@@ -161,6 +161,9 @@
         }
 
         async function loadTasks() {
+            // 🔍 خطوة كشف المستور: هنطبع بيانات الجلسة في الكونسول عشان نشوف الأسامي متخزنة إزاي
+            console.log("👤 بيانات المستخدم الحالي في صفحة الافتقاد:", currentUser);
+
             const tabsContainer = document.getElementById('tabsContainer');
             tabsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 w-full"><i class="fa-solid fa-spinner fa-spin mr-2"></i> جاري التحميل...</div>';
 
@@ -179,23 +182,30 @@
 
             let rawTasks = data || [];
 
-            // تنظيف اسم القائد الحالي تماماً من أي مسافات زائدة في البداية والنهاية
-            const currentLeaderName = currentUser.full_name ? String(currentUser.full_name).trim() : '';
+            // 💡 الحل الذكي: قراءة الاسم بجميع الأشكال المحتملة اللي ممكن تكون متخزنة في الـ localStorage
+            let currentLeaderName = '';
+            if (currentUser) {
+                currentLeaderName = currentUser.full_name || currentUser.name || currentUser.username || '';
+            }
+            currentLeaderName = String(currentLeaderName).trim();
+            
+            console.log("🎯 الاسم الذي سيتم الفلترة بناءً عليه:", currentLeaderName);
 
-            if (currentUser.role === 'TroopLeader') {
+            if (currentUser && currentUser.role === 'TroopLeader') {
                 allTasks = rawTasks.filter(task => {
-                    // تنظيف الاسم المخزن في المهمة بالداتابيز
                     const taskAssignedName = task.assigned_to_name ? String(task.assigned_to_name).trim() : '';
                     const taskNotes = task.notes ? String(task.notes).trim() : '';
 
-                    // 1. الطريقة الأولى: مقارنة العمود الجديد assigned_to_name بالاسم الحالي
-                    if (taskAssignedName !== '' && currentLeaderName !== '') {
-                        if (taskAssignedName === currentLeaderName) return true;
+                    if (currentLeaderName === '') return false;
+
+                    // 1. المطابقة بالعمود الجديد
+                    if (taskAssignedName !== '' && taskAssignedName === currentLeaderName) {
+                        return true;
                     }
 
-                    // 2. الطريقة الاحتياطية: لو العمود الجديد فاضي، بنشيك لو الاسم مكتوب جوه الـ notes القديمة
-                    if (taskNotes !== '' && currentLeaderName !== '') {
-                        if (taskNotes.includes(currentLeaderName)) return true;
+                    // 2. المطابقة الاحتياطية بالنوتس
+                    if (taskNotes !== '' && taskNotes.includes(currentLeaderName)) {
+                        return true;
                     }
 
                     return false;
@@ -204,46 +214,6 @@
                 // الماستر والقائد العام وقائد القطاع بيشوفوا كل المهام
                 allTasks = rawTasks;
             }
-
-            if (allTasks.length === 0) {
-                tabsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 w-full">مفيش مهام افتقاد حالياً تخصك</div>';
-                const taskContent = document.getElementById('taskContent');
-                if (taskContent) {
-                    taskContent.innerHTML = `
-                        <div class="content-card text-center text-gray-500">
-                            <i class="fa-solid fa-clipboard-list text-5xl mb-3 opacity-50"></i>
-                            <p>مفيش مهام افتقاد معينة لك في هذا القطاع</p>
-                        </div>`;
-                }
-                return;
-            }
-
-            // رسم التابات
-            tabsContainer.innerHTML = '';
-            allTasks.forEach((task, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'tab-btn' + (index === 0 ? ' active' : '');
-                btn.onclick = (e) => {
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    selectTask(task.id);
-                };
-                
-                const dateObj = new Date(task.task_date);
-                const dateStr = dateObj.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
-                
-                btn.innerHTML = `
-                    <i class="fa-solid fa-calendar-day ml-1"></i>
-                    ${dateStr}
-                    ${canCreateTasks ? `<span class="close-tab" onclick="event.stopPropagation(); deleteTask('${task.id}')"><i class="fa-solid fa-xmark"></i></span>` : ''}
-                `;
-                tabsContainer.appendChild(btn);
-            });
-
-            if (allTasks.length > 0) {
-                selectTask(allTasks[0].id);
-            }
-        }
 
         async function selectTask(taskId) {
             currentTaskId = taskId;
