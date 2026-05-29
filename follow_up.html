@@ -386,6 +386,9 @@ async function createNewTask() {
     const checked = document.querySelectorAll('.scout-checkbox:checked');
     if (!checked.length) { alert('من فضلك اختر كشاف واحد على الأقل'); return; }
 
+    console.log('🚀 Creating task with:', { taskDate, assignedTo, assignedToName, sector: userSector });
+    console.log('🚀 Selected scouts:', checked.length);
+
     const btn = document.getElementById('createTaskBtn');
     btn.disabled = true; btn.textContent = 'جاري الإنشاء...';
 
@@ -395,11 +398,15 @@ async function createNewTask() {
             task_date: taskDate,
             sector: userSector || 'عام',
             created_by: currentUser.full_name,
-            assigned_to: assignedTo,           // username القائد
-            assigned_to_name: assignedToName,  // اسمه الكامل
+            assigned_to: assignedTo,
+            assigned_to_name: assignedToName,
             notes: notes || null
         }])
         .select().single();
+
+    console.log('📝 INSERT values:', { assignedTo, assignedToName, taskDate, sector: userSector });
+    console.log('📝 Task result:', JSON.stringify(newTask));
+    console.log('📝 Task error:', taskErr);
 
     if (taskErr) {
         alert('فشل إنشاء المهمة: ' + taskErr.message);
