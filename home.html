@@ -172,12 +172,24 @@
         tag.textContent = roleNames[user.role] || user.role;
         tag.classList.add(roleClasses[user.role] || 'role-troop');
 
-        const sectorNames = { 'براعم': ' البراعم', 'ابتدائي': 'قطاع الابتدائي', 'اعدادي': 'قطاع الإعدادي', 'ثانوي': 'قطاع الثانوي' };
-        if (user.role === 'Master') document.getElementById('userSector').textContent = 'كل المجموعة (ماستر)';
-        else if (user.role === 'General') document.getElementById('userSector').textContent = 'كل المجموعة (قائد عام)';
-        else if (user.role === 'SectorLeader') document.getElementById('userSector').textContent = sectorNames[user.sector] || user.sector || '—';
-        else if (user.role === 'TroopLeader') document.getElementById('userSector').textContent = `فرقة ${user.troop}`;
-        else document.getElementById('userSector').textContent = '—';
+        console.log('👤 User Info:', {
+            role: user.role,
+            sector: user.sector,
+            troop: user.troop,
+            full_name: user.full_name
+        });
+
+        if (user.role === 'Master') {
+            document.getElementById('userSector').textContent = 'كل المجموعة (ماستر)';
+        } else if (user.role === 'General') {
+            document.getElementById('userSector').textContent = 'كل المجموعة (قائد عام)';
+        } else if (user.role === 'SectorLeader') {
+            document.getElementById('userSector').textContent = `قطاع ${user.sector || '—'}`;
+        } else if (user.role === 'TroopLeader') {
+            document.getElementById('userSector').textContent = `فرقة ${user.troop || '—'}`;
+        } else {
+            document.getElementById('userSector').textContent = '—';
+        }
 
         document.getElementById('lastLogin').textContent = new Date().toLocaleDateString('ar-EG');
 
@@ -194,43 +206,39 @@
         }
 
         // ===== Load peer leaders =====
-        // Mapping: sector → school_stages
-        const sectorToStages = {
-            'براعم': ['براعم'],
-            'ابتدائي': ['ابتدائي'],
-            'اعدادي': ['اعدادي'],
-            'ثانوي': ['ثانوي']
-        };
         // Mapping: troop → sector (موحدة)
         const troopToSector = {
             'براعم': 'براعم',
-            'أشبال وزهرات': 'ابتدائي',
-            'أشبال': 'ابتدائي',
-            'زهرات': 'ابتدائي',
-            'مبتدئ ومرشدات': 'اعدادي',
-            'كشاف مبتدئ': 'اعدادي',
-            'مرشدات': 'اعدادي',
-            'متقدم ورائدات': 'ثانوي',
-            'كشاف متقدم': 'ثانوي',
-            'رائدات': 'ثانوي'
+            'أشبال وزهرات': 'أشبال وزهرات',
+            'أشبال': 'أشبال وزهرات',
+            'زهرات': 'أشبال وزهرات',
+            'مبتدئ ومرشدات': 'مبتدئ ومرشدات',
+            'كشاف مبتدئ': 'مبتدئ ومرشدات',
+            'مرشدات': 'مبتدئ ومرشدات',
+            'متقدم ورائدات': 'متقدم ورائدات',
+            'كشاف متقدم': 'متقدم ورائدات',
+            'رائدات': 'متقدم ورائدات'
         };
 
         async function loadLeadersInSameSector() {
             const leadersDiv = document.getElementById('leadersList');
-            let query = supabaseClient.from('leaders').select('full_name, role, troop, sector').eq('status', 'نشط');
+            
+            console.log('🔍 Loading leaders for user:', {
+                role: user.role,
+                sector: user.sector,
+                troop: user.troop,
+                username: user.username
+            });
+            
+            let query = supabaseClient.from('leaders').select('full_name, role, troop, sector, username').eq('status', 'نشط');
 
             if (user.role === 'Master') {
-                // Sees all active leaders except themselves
                 query = query.neq('username', user.username);
             } else if (user.role === 'General') {
-                // Sees all except Master and themselves
                 query = query.neq('username', user.username).neq('role', 'Master');
             } else if (user.role === 'SectorLeader') {
-                // Sees SectorLeaders in same sector + TroopLeaders whose troop belongs to this sector
-                // We fetch all non-admin leaders then filter client-side (simpler)
                 query = query.neq('username', user.username).neq('role', 'Master').neq('role', 'General');
             } else if (user.role === 'TroopLeader') {
-                // Sees leaders in same sector (TroopLeader + SectorLeader of that sector)
                 query = query.neq('username', user.username).neq('role', 'Master').neq('role', 'General');
             } else {
                 leadersDiv.innerHTML = '<div class="text-center text-gray-500 py-4 col-span-full">—</div>';
@@ -239,28 +247,55 @@
             }
 
             const { data, error } = await query;
+            
+            console.log('📦 Fetched leaders:', data);
+            
             if (error || !data) {
+                console.error('❌ Error loading leaders:', error);
                 leadersDiv.innerHTML = '<div class="text-center text-gray-500 py-4 col-span-full">خطأ في التحميل</div>';
                 return;
             }
 
             // Client-side sector filtering for TroopLeader and SectorLeader
             let filtered = data;
-            const myTroopSector = troopToSector[user.troop] || null;
 
             if (user.role === 'SectorLeader') {
+                // قائد القطاع يشوف:
+                // 1. قادة قطاع تانيين في نفس القطاع
+                // 2. قادة فرق اللي فرقهم تابعة لنفس القطاع
                 filtered = data.filter(l => {
-                    if (l.role === 'SectorLeader') return l.sector === user.sector;
-                    if (l.role === 'TroopLeader') return troopToSector[l.troop] === user.sector;
+                    if (l.role === 'SectorLeader') {
+                        // قادة قطاع في نفس القطاع
+                        return l.sector === user.sector;
+                    }
+                    if (l.role === 'TroopLeader') {
+                        // قادة فرق: نشوف لو فرقتهم تابعة للقطاع ده
+                        const leaderSector = troopToSector[l.troop];
+                        return leaderSector === user.sector;
+                    }
                     return false;
                 });
             } else if (user.role === 'TroopLeader') {
+                // قائد الفرقة يشوف:
+                // 1. قائد القطاع اللي فرقته تابعة ليه
+                // 2. قادة فرق تانيين في نفس القطاع
+                const myTroopSector = troopToSector[user.troop];
+                
                 filtered = data.filter(l => {
-                    if (l.role === 'SectorLeader') return l.sector === myTroopSector;
-                    if (l.role === 'TroopLeader') return troopToSector[l.troop] === myTroopSector;
+                    if (l.role === 'SectorLeader') {
+                        // قائد القطاع اللي فرقتي تابعة ليه
+                        return l.sector === myTroopSector;
+                    }
+                    if (l.role === 'TroopLeader') {
+                        // قادة فرق تانيين في نفس القطاع
+                        const leaderSector = troopToSector[l.troop];
+                        return leaderSector === myTroopSector;
+                    }
                     return false;
                 });
             }
+
+            console.log('✅ Filtered leaders:', filtered);
 
             document.getElementById('leadersCount').textContent = filtered.length;
 
@@ -270,6 +305,13 @@
             }
 
             const roleNamesAr = { Master: 'ماستر', General: 'قائد عام', SectorLeader: 'قائد قطاع', TroopLeader: 'قائد فرقة', Viewer: 'مشاهد' };
+            const sectorNamesDisplay = { 
+                'براعم': 'براعم', 
+                'أشبال وزهرات': 'أشبال وزهرات',
+                'مبتدئ ومرشدات': 'مبتدئ ومرشدات',
+                'متقدم ورائدات': 'متقدم ورائدات'
+            };
+            
             leadersDiv.innerHTML = filtered.map(l => `
                 <div class="bg-[var(--dark3)] border border-[var(--border)] rounded-xl p-3 flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-[rgba(201,168,76,0.15)] flex items-center justify-center text-[var(--gold)]">
@@ -278,7 +320,7 @@
                     <div class="flex-1">
                         <p class="text-white font-bold text-sm">${l.full_name}</p>
                         <p class="text-xs text-gray-400">${roleNamesAr[l.role] || l.role}</p>
-                        <p class="text-xs text-[var(--gold)] mt-0.5">${l.role === 'SectorLeader' ? (sectorNames[l.sector] || l.sector || '—') : (l.troop || '—')}</p>
+                        <p class="text-xs text-[var(--gold)] mt-0.5">${l.role === 'SectorLeader' ? (sectorNamesDisplay[l.sector] || l.sector || '—') : (l.troop || '—')}</p>
                     </div>
                 </div>
             `).join('');
