@@ -142,13 +142,17 @@ async function loadTasks() {
 
     if (isTroopLeader) {
         // قائد الفرقة يشوف بس المهام المعينة ليه بالـ username
+        console.log('🔍 TroopLeader filter: assigned_to =', currentUser.username);
         query = query.eq('assigned_to', currentUser.username);
     } else if (isSectorLeader) {
+        console.log('🔍 SectorLeader filter: sector =', userSector);
         query = query.eq('sector', userSector);
     }
     // Master/General يشوف الكل
 
     const { data, error } = await query;
+    console.log('📦 Tasks loaded:', data?.length, 'tasks');
+    console.log('📦 Raw data:', JSON.stringify(data?.map(t => ({ id: t.id, assigned_to: t.assigned_to, assigned_to_name: t.assigned_to_name, sector: t.sector }))));
 
     if (error) {
         tabsContainer.innerHTML = '<div class="text-red-400 py-2 w-full text-center text-sm">فشل التحميل: ' + error.message + '</div>';
