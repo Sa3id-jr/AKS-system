@@ -313,8 +313,9 @@ async function openNewTaskModal() {
             const opt = document.createElement('option');
             opt.value = l.username;                              // ← الـ username هو اللي بنفلتر بيه
             opt.textContent = l.full_name + ' — ' + (l.troop || l.role);
-            opt.dataset.name  = l.full_name;
-            opt.dataset.troop = l.troop || '';
+            opt.dataset.name     = l.full_name;
+            opt.dataset.username = l.username;
+            opt.dataset.troop    = l.troop || '';
             leaderSelect.appendChild(opt);
         });
     }
@@ -378,7 +379,16 @@ async function createNewTask() {
     const notes          = document.getElementById('newTaskNotes').value.trim();
     const sel            = document.getElementById('taskLeaderSelect');
     const assignedTo     = sel.value;                                          // username
-    const assignedToName = sel.options[sel.selectedIndex]?.dataset?.name || assignedTo;
+    const selectedOpt    = sel.options[sel.selectedIndex];
+    const assignedToName = selectedOpt?.dataset?.name || assignedTo;
+
+    console.log('🎯 Selected leader option:', {
+        value: sel.value,
+        dataUsername: selectedOpt?.dataset?.username,
+        dataName: selectedOpt?.dataset?.name,
+        dataTroop: selectedOpt?.dataset?.troop,
+        text: selectedOpt?.textContent
+    });
 
     if (!taskDate)   { alert('من فضلك اختر تاريخ المهمة'); return; }
     if (!assignedTo) { alert('من فضلك اختر القائد المسؤول'); return; }
