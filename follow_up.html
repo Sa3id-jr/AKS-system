@@ -142,13 +142,17 @@ async function loadTasks() {
 
     if (isTroopLeader) {
         // قائد الفرقة يشوف بس المهام المعينة ليه بالـ username
+        console.log('🔍 TroopLeader filter: assigned_to =', currentUser.username);
         query = query.eq('assigned_to', currentUser.username);
     } else if (isSectorLeader) {
+        console.log('🔍 SectorLeader filter: sector =', userSector);
         query = query.eq('sector', userSector);
     }
     // Master/General يشوف الكل
 
     const { data, error } = await query;
+    console.log('📦 Tasks loaded:', data?.length, 'tasks');
+    console.log('📦 Raw data:', JSON.stringify(data?.map(t => ({ id: t.id, assigned_to: t.assigned_to, assigned_to_name: t.assigned_to_name, sector: t.sector }))));
 
     if (error) {
         tabsContainer.innerHTML = '<div class="text-red-400 py-2 w-full text-center text-sm">فشل التحميل: ' + error.message + '</div>';
@@ -378,11 +382,22 @@ async function createNewTask() {
     const selectedOpt    = sel.options[sel.selectedIndex];
     const assignedToName = selectedOpt?.dataset?.name || assignedTo;
 
+    console.log('🎯 Selected leader option:', {
+        value: sel.value,
+        dataUsername: selectedOpt?.dataset?.username,
+        dataName: selectedOpt?.dataset?.name,
+        dataTroop: selectedOpt?.dataset?.troop,
+        text: selectedOpt?.textContent
+    });
+
     if (!taskDate)   { alert('من فضلك اختر تاريخ المهمة'); return; }
     if (!assignedTo) { alert('من فضلك اختر القائد المسؤول'); return; }
 
     const checked = document.querySelectorAll('.scout-checkbox:checked');
     if (!checked.length) { alert('من فضلك اختر كشاف واحد على الأقل'); return; }
+
+    console.log('🚀 Creating task with:', { taskDate, assignedTo, assignedToName, sector: userSector });
+    console.log('🚀 Selected scouts:', checked.length);
 
     const btn = document.getElementById('createTaskBtn');
     btn.disabled = true; btn.textContent = 'جاري الإنشاء...';
@@ -398,6 +413,10 @@ async function createNewTask() {
             notes: notes || null
         }])
         .select().single();
+
+    console.log('📝 INSERT values:', { assignedTo, assignedToName, taskDate, sector: userSector });
+    console.log('📝 Task result:', JSON.stringify(newTask));
+    console.log('📝 Task error:', taskErr);
 
     if (taskErr) {
         alert('فشل إنشاء المهمة: ' + taskErr.message);
