@@ -179,20 +179,29 @@
 
             let rawTasks = data || [];
 
-            if (currentUser.role === 'TroopLeader') {
-                // الفلترة بالاعتماد الصريح على الـ ID أو الاسم المخزن في العواميد الجديدة
-                allTasks = rawTasks.filter(task => {
-                    const myId = String(currentUser.id || '').trim();
-                    const myName = String(currentUser.full_name || '').trim();
-                    
-                    const taskAssignedId = String(task.assigned_to || '').trim();
-                    const taskAssignedName = String(task.assigned_to_name || '').trim();
+            // تنظيف اسم القائد الحالي تماماً من أي مسافات زائدة في البداية والنهاية
+            const currentLeaderName = currentUser.full_name ? String(currentUser.full_name).trim() : '';
 
-                    // بيطابق لو الـ ID متطابق، أو كحل احتياطي لو الاسم متطابق
-                    return (taskAssignedId === myId && myId !== '') || (taskAssignedName === myName && myName !== '');
+            if (currentUser.role === 'TroopLeader') {
+                allTasks = rawTasks.filter(task => {
+                    // تنظيف الاسم المخزن في المهمة بالداتابيز
+                    const taskAssignedName = task.assigned_to_name ? String(task.assigned_to_name).trim() : '';
+                    const taskNotes = task.notes ? String(task.notes).trim() : '';
+
+                    // 1. الطريقة الأولى: مقارنة العمود الجديد assigned_to_name بالاسم الحالي
+                    if (taskAssignedName !== '' && currentLeaderName !== '') {
+                        if (taskAssignedName === currentLeaderName) return true;
+                    }
+
+                    // 2. الطريقة الاحتياطية: لو العمود الجديد فاضي، بنشيك لو الاسم مكتوب جوه الـ notes القديمة
+                    if (taskNotes !== '' && currentLeaderName !== '') {
+                        if (taskNotes.includes(currentLeaderName)) return true;
+                    }
+
+                    return false;
                 });
             } else {
-                // الماستر والقائد العام وقائد القطاع بيشوفوا كل مهام القطاع
+                // الماستر والقائد العام وقائد القطاع بيشوفوا كل المهام
                 allTasks = rawTasks;
             }
 
