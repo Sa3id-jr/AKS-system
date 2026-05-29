@@ -178,13 +178,16 @@
             }
 
             let rawTasks = data || [];
-            const currentLeaderName = currentUser.full_name ? currentUser.full_name.trim() : '';
 
             if (currentUser.role === 'TroopLeader') {
+                // فلترة بـ assigned_to (username) أولاً، لو مش موجود نرجع للـ notes القديمة كـ fallback
+                const currentLeaderName = currentUser.full_name ? currentUser.full_name.trim() : '';
                 allTasks = rawTasks.filter(task => {
-                    if (!task.notes) return false;
-                    const cleanNotes = task.notes.trim();
-                    return cleanNotes.includes(`[`) && cleanNotes.includes(currentLeaderName);
+                    // الطريقة الجديدة: مقارنة بـ username
+                    if (task.assigned_to && task.assigned_to === currentUser.username) return true;
+                    // fallback للمهام القديمة المسجلة بالطريقة القديمة (notes)
+                    if (!task.assigned_to && task.notes && task.notes.includes(currentLeaderName)) return true;
+                    return false;
                 });
             } else {
                 allTasks = rawTasks;
@@ -216,9 +219,14 @@
                 const dateObj = new Date(task.task_date);
                 const dateStr = dateObj.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
                 
+                // اسم القائد: من assigned_to_name أو من notes القديمة
+                const leaderNameDisplay = task.assigned_to_name || 
+                    (task.notes?.match(/\[([^\]]+)\]/)?.[1]) || '';
+                
                 btn.innerHTML = `
                     <i class="fa-solid fa-calendar-day ml-1"></i>
                     ${dateStr}
+                    ${leaderNameDisplay ? `<span class="text-xs opacity-60 mr-1">(${leaderNameDisplay})</span>` : ''}
                     ${canCreateTasks ? `<span class="close-tab" onclick="event.stopPropagation(); deleteTask('${task.id}')"><i class="fa-solid fa-xmark"></i></span>` : ''}
                 `;
                 tabsContainer.appendChild(btn);
@@ -257,7 +265,8 @@
                     <div class="flex justify-between items-start mb-6">
                         <div>
                             <h2 class="text-xl font-bold text-white mb-2">مهمة افتقاد - ${new Date(task.task_date).toLocaleDateString('ar-EG')}</h2>
-                            ${task.notes ? `<p class="text-sm text-gray-400">${task.notes}</p>` : ''}
+                            ${task.assigned_to_name ? `<p class="text-sm text-[var(--gold)] font-bold mb-1"><i class="fa-solid fa-user-tie ml-1"></i> المعين: ${task.assigned_to_name}</p>` : (task.notes && task.notes.includes('[') ? `<p class="text-sm text-[var(--gold)] font-bold mb-1"><i class="fa-solid fa-user-tie ml-1"></i> ${task.notes.match(/\[([^\]]+)\]/)?.[1] || ''}</p>` : '')}
+                            ${task.notes ? `<p class="text-sm text-gray-400">${task.notes.replace(/^\[[^\]]+\]\s*/, '')}</p>` : ''}
                             <p class="text-xs text-gray-500 mt-1">أنشأها: ${task.created_by}</p>
                         </div>
                         <div class="text-left">
@@ -367,7 +376,7 @@
 
             let query = supabaseClient
                 .from('leaders')
-                .select('id, full_name, troop, role')
+                .select('id, full_name, troop, role, username')
                 .eq('status', 'نشط')
                 .eq('role', 'TroopLeader');
 
@@ -494,13 +503,19 @@
                 phone: cb.dataset.phone || null
             }));
 
+            // نجيب username القائد المختار
+            const selectedLeader = availableLeaders.find(l => l.id === selectedLeaderId);
+            const assignedToUsername = selectedLeader?.username || selectedLeaderId;
+
             const { data: newTask, error: taskError } = await supabaseClient
                 .from('follow_up_tasks')
                 .insert([{
                     task_date: taskDate,
                     sector: userSector,
                     created_by: currentUser.full_name,
-                    notes: `[${selectedLeaderName}] ${notes}`.trim()
+                    assigned_to: assignedToUsername,
+                    assigned_to_name: selectedLeaderName,
+                    notes: notes || ''
                 }])
                 .select()
                 .single();
