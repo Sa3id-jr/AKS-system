@@ -178,15 +178,21 @@
             }
 
             let rawTasks = data || [];
-            const currentLeaderName = currentUser.full_name ? currentUser.full_name.trim() : '';
 
             if (currentUser.role === 'TroopLeader') {
+                // الفلترة بالاعتماد الصريح على الـ ID أو الاسم المخزن في العواميد الجديدة
                 allTasks = rawTasks.filter(task => {
-                    if (!task.notes) return false;
-                    const cleanNotes = task.notes.trim();
-                    return cleanNotes.includes(`[`) && cleanNotes.includes(currentLeaderName);
+                    const myId = String(currentUser.id || '').trim();
+                    const myName = String(currentUser.full_name || '').trim();
+                    
+                    const taskAssignedId = String(task.assigned_to || '').trim();
+                    const taskAssignedName = String(task.assigned_to_name || '').trim();
+
+                    // بيطابق لو الـ ID متطابق، أو كحل احتياطي لو الاسم متطابق
+                    return (taskAssignedId === myId && myId !== '') || (taskAssignedName === myName && myName !== '');
                 });
             } else {
+                // الماستر والقائد العام وقائد القطاع بيشوفوا كل مهام القطاع
                 allTasks = rawTasks;
             }
 
@@ -203,6 +209,7 @@
                 return;
             }
 
+            // رسم التابات
             tabsContainer.innerHTML = '';
             allTasks.forEach((task, index) => {
                 const btn = document.createElement('button');
@@ -472,13 +479,13 @@
             const taskDate = document.getElementById('newTaskDate').value;
             const notes = document.getElementById('newTaskNotes').value.trim();
             const leaderSelect = document.getElementById('taskLeaderSelect');
-            const selectedLeaderId = leaderSelect.value;
             
+            const selectedLeaderId = leaderSelect.value; // الـ ID بتاع القائد (مثلاً رقم أو UUID)
             let selectedLeaderName = leaderSelect.options[leaderSelect.selectedIndex]?.textContent || '';
-            selectedLeaderName = selectedLeaderName.split('(')[0].trim(); 
+            selectedLeaderName = selectedLeaderName.split('(')[0].trim(); // تنظيف اسم القائد من (اسم الفرقة)
 
             if (!taskDate || !selectedLeaderId) {
-                alert('من فضلك اكمل البيانات المطلوبة');
+                alert('من فضلك اكمل البيانات المطلوبة واختار القائد المسؤول');
                 return;
             }
 
@@ -494,13 +501,16 @@
                 phone: cb.dataset.phone || null
             }));
 
+            // الحفظ في الداتابيز مع العواميد الجديدة assigned_to و assigned_to_name
             const { data: newTask, error: taskError } = await supabaseClient
                 .from('follow_up_tasks')
                 .insert([{
                     task_date: taskDate,
                     sector: userSector,
                     created_by: currentUser.full_name,
-                    notes: `[${selectedLeaderName}] ${notes}`.trim()
+                    notes: notes, // الملاحظات العادية بدون لغبطة الأقواس
+                    assigned_to: selectedLeaderId, // كود القائد الجديد
+                    assigned_to_name: selectedLeaderName // اسم القائد الجديد
                 }])
                 .select()
                 .single();
@@ -526,7 +536,7 @@
                 return;
             }
 
-            alert(`تم إنشاء المهمة بنجاح! (${selectedScouts.length} كشاف)`);
+            alert(`تم إنشاء المهمة بنجاح وتعيينها للقائد ${selectedLeaderName}!`);
             closeNewTaskModal();
             loadTasks();
         }
