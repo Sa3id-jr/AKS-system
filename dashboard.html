@@ -143,7 +143,7 @@
 
                 <div id="dataView" class="overflow-x-auto">
                     <table class="w-full text-right border-collapse whitespace-nowrap" id="dataTable">
-                        <thead><tr><th class="p-4">الصورة</th><th class="p-4">الكود الكشفي</th><th class="p-4">الاسم الرباعي</th><th class="p-4">الفرقة الكشفية</th><th class="p-4">الطليعة</th><th class="p-4"></th>رقم الموبايل</th><th class="p-4 text-center">إجراءات</th></tr></thead>
+                        <thead><tr><th class="p-4">الصورة</th><th class="p-4">الكود الكشفي</th><th class="p-4">الاسم الرباعي</th><th class="p-4">الفرقة الكشفية</th><th class="p-4">الطليعة</th><th class="p-4">رقم الموبايل</th><th class="p-4">ملاحظات</th><th class="p-4 text-center">إجراءات</th></tr></thead>
                         <tbody id="scoutsTableBody"></tbody>
                     </table>
                 </div>
@@ -295,6 +295,14 @@
                         <div class="mb-2">
                             <label class="form-label">رابط الصورة من Google Drive</label>
                             <input id="formPhotoUrl" type="text" class="form-input" dir="ltr" placeholder="https://drive.google.com/open?id=...">
+                        </div>
+
+                        <div class="gold-divider"></div>
+                        <div class="section-heading gold"><i class="fa-solid fa-comment"></i> ملاحظات القادة</div>
+                        <div class="mb-2">
+                            <label class="form-label">ملاحظات عن الكشاف</label>
+                            <textarea id="formComments" class="form-input" rows="3" style="resize:vertical" placeholder="ملاحظات القادة عن الكشاف..."></textarea>
+                            <p class="text-xs text-gray-500 mt-1">هذه الملاحظات يمكن لجميع القادة رؤيتها وتعديلها</p>
                         </div>
                     </form>
                 </div>
