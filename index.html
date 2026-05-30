@@ -108,6 +108,59 @@
                     </select>
                 </div>
 
+                <div class="border-t border-[rgba(201,168,76,0.15)] pt-4 mt-4">
+                    <label class="form-label">الحالة الوظيفية/الدراسية *</label>
+                    <select id="regEmploymentStatus" class="form-input" style="padding-right:1rem" onchange="toggleEmploymentFields()">
+                        <option value="بيدرس">بيدرس</option>
+                        <option value="شغال">شغال</option>
+                        <option value="لا يعمل">لا يعمل</option>
+                    </select>
+                </div>
+
+                <div id="studyFields">
+                    <div>
+                        <label class="form-label">المرحلة الدراسية</label>
+                        <select id="regEducationLevel" class="form-input" style="padding-right:1rem">
+                            <option value="">-- اختر --</option>
+                            <option value="جامعة">جامعة</option>
+                            <option value="دراسات عليا">دراسات عليا</option>
+                            <option value="ثانوي">ثانوي</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">الجامعة</label>
+                        <input type="text" id="regUniversity" class="form-input" style="padding-right:1rem" placeholder="مثال: جامعة القاهرة">
+                    </div>
+                    <div>
+                        <label class="form-label">الكلية</label>
+                        <input type="text" id="regFaculty" class="form-input" style="padding-right:1rem" placeholder="مثال: هندسة">
+                    </div>
+                    <div>
+                        <label class="form-label">السنة الدراسية</label>
+                        <input type="text" id="regAcademicYear" class="form-input" style="padding-right:1rem" placeholder="مثال: السنة الثانية">
+                    </div>
+                </div>
+
+                <div id="workFields" class="hidden">
+                    <div>
+                        <label class="form-label">المسمى الوظيفي</label>
+                        <input type="text" id="regJobTitle" class="form-input" style="padding-right:1rem" placeholder="مثال: مهندس برمجيات">
+                    </div>
+                    <div>
+                        <label class="form-label">مكان العمل</label>
+                        <input type="text" id="regWorkplace" class="form-input" style="padding-right:1rem" placeholder="مثال: شركة XYZ">
+                    </div>
+                    <div>
+                        <label class="form-label">المؤهل الدراسي</label>
+                        <input type="text" id="regEducationLevelWork" class="form-input" style="padding-right:1rem" placeholder="مثال: بكالوريوس هندسة">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">الخبرة الكشفية السابقة</label>
+                    <textarea id="regScoutingExperience" class="form-input" style="padding-right:1rem; resize:vertical" rows="3" placeholder="مثال: خدمت في براعم لمدة سنتين، حاصل على شارة كذا..."></textarea>
+                </div>
+
                 <button type="submit" id="signupBtn" class="btn-gold w-full py-2.5 rounded-lg mt-2">تسجيل الحساب</button>
             </form>
         </div>
@@ -131,6 +184,12 @@
             const role = document.getElementById('regRole').value;
             document.getElementById('troopField').classList.toggle('hidden', role !== 'TroopLeader');
             document.getElementById('sectorField').classList.toggle('hidden', role !== 'SectorLeader');
+        }
+
+        function toggleEmploymentFields() {
+            const status = document.getElementById('regEmploymentStatus').value;
+            document.getElementById('studyFields').classList.toggle('hidden', status !== 'بيدرس');
+            document.getElementById('workFields').classList.toggle('hidden', status !== 'شغال');
         }
 
         async function handleLogin(event) {
@@ -183,6 +242,7 @@
             const requestedRole = document.getElementById('regRole').value;
             const troop = requestedRole === 'TroopLeader' ? document.getElementById('regTroop').value : 'غير محدد';
             const sector = requestedRole === 'SectorLeader' ? document.getElementById('regSector').value : null;
+            const employmentStatus = document.getElementById('regEmploymentStatus').value;
 
             const leaderData = {
                 full_name: document.getElementById('regName').value.trim(),
@@ -193,7 +253,21 @@
                 troop: troop,
                 sector: sector,
                 status: 'قيد الانتظار',
+                employment_status: employmentStatus,
+                scouting_experience: document.getElementById('regScoutingExperience').value.trim() || null
             };
+
+            // إضافة حقول الدراسة أو العمل حسب الحالة
+            if (employmentStatus === 'بيدرس') {
+                leaderData.education_level = document.getElementById('regEducationLevel').value || null;
+                leaderData.university = document.getElementById('regUniversity').value.trim() || null;
+                leaderData.faculty = document.getElementById('regFaculty').value.trim() || null;
+                leaderData.academic_year = document.getElementById('regAcademicYear').value.trim() || null;
+            } else if (employmentStatus === 'شغال') {
+                leaderData.job_title = document.getElementById('regJobTitle').value.trim() || null;
+                leaderData.workplace = document.getElementById('regWorkplace').value.trim() || null;
+                leaderData.education_level = document.getElementById('regEducationLevelWork').value.trim() || null;
+            }
 
             const { error } = await supabaseClient.from('leaders').insert([leaderData]);
 
@@ -204,6 +278,7 @@
                 closeSignupModal();
                 document.getElementById('signupForm').reset();
                 toggleRoleFields();
+                toggleEmploymentFields();
             }
 
             btn.disabled = false; btn.textContent = 'تسجيل الحساب';

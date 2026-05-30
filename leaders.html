@@ -64,7 +64,7 @@
     </div>
 
     <div id="leaderModal" class="modal-bg fixed inset-0 hidden flex items-center justify-center z-50 p-4">
-        <div class="modal-box w-full max-w-md p-6 relative">
+        <div class="modal-box w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeModal()" class="absolute top-4 left-4 text-gray-500 hover:text-red-400 text-xl"><i class="fa-solid fa-circle-xmark"></i></button>
             <h2 class="text-xl font-bold text-white mb-6 border-b pb-2 border-[var(--border)]" id="modalTitle">إضافة قائد جديد</h2>
             
@@ -97,10 +97,37 @@
                     <label class="form-label">القطاع المسئول *</label>
                     <select id="leaderSector" class="form-input">
                         <option value="براعم">براعم</option>
-                        <option value="أشبال وزهرات">أشبال وزهرات</option>
-                        <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
-                        <option value="متقدم ورائدات">متقدم ورائدات</option>
+                        <option value="ابتدائي">ابتدائي</option>
+                        <option value="اعدادي">اعدادي</option>
+                        <option value="ثانوي">ثانوي</option>
                     </select>
+                </div>
+
+                <div class="border-t border-[var(--border)] pt-4 mt-4">
+                    <label class="form-label">الحالة الوظيفية/الدراسية</label>
+                    <select id="leaderEmploymentStatus" class="form-input" onchange="toggleLeaderEmploymentFields()">
+                        <option value="">-- اختر --</option>
+                        <option value="بيدرس">بيدرس</option>
+                        <option value="شغال">شغال</option>
+                        <option value="لا يعمل">لا يعمل</option>
+                    </select>
+                </div>
+
+                <div id="leaderStudyFields" class="hidden">
+                    <div><label class="form-label">المرحلة الدراسية</label><input type="text" id="leaderEducationLevel" class="form-input" placeholder="مثال: جامعة"></div>
+                    <div><label class="form-label">الجامعة</label><input type="text" id="leaderUniversity" class="form-input" placeholder="مثال: جامعة القاهرة"></div>
+                    <div><label class="form-label">الكلية</label><input type="text" id="leaderFaculty" class="form-input" placeholder="مثال: هندسة"></div>
+                    <div><label class="form-label">السنة الدراسية</label><input type="text" id="leaderAcademicYear" class="form-input" placeholder="مثال: السنة الثانية"></div>
+                </div>
+
+                <div id="leaderWorkFields" class="hidden">
+                    <div><label class="form-label">المسمى الوظيفي</label><input type="text" id="leaderJobTitle" class="form-input" placeholder="مثال: مهندس"></div>
+                    <div><label class="form-label">مكان العمل</label><input type="text" id="leaderWorkplace" class="form-input" placeholder="مثال: شركة XYZ"></div>
+                </div>
+
+                <div>
+                    <label class="form-label">الخبرة الكشفية</label>
+                    <textarea id="leaderScoutingExperience" class="form-input" rows="2" style="resize:vertical" placeholder="مثال: خدمت في براعم لمدة سنتين..."></textarea>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
@@ -144,7 +171,7 @@
                     actionsHtml = `<span class="text-xs text-gray-600">محمي</span>`;
                 } else {
                     actionsHtml = `
-                        <button onclick="openEditLeaderModal('${leader.id}', '${leader.full_name}', '${leader.username}', '${leader.password}', '${leader.role}', '${leader.troop || ''}', '${leader.sector || ''}', '${leader.phone || ''}')" class="text-blue-400 hover:text-blue-300 ml-3">
+                        <button onclick="openEditLeaderModal('${leader.id}', '${leader.full_name}', '${leader.username}', '${leader.password}', '${leader.role}', '${leader.troop || ''}', '${leader.sector || ''}', '${leader.phone || ''}', '${leader.employment_status || ''}', '${leader.education_level || ''}', '${leader.university || ''}', '${leader.faculty || ''}', '${leader.academic_year || ''}', '${leader.job_title || ''}', '${leader.workplace || ''}', '${(leader.scouting_experience || '').replace(/'/g, "\\'")}' )" class="text-blue-400 hover:text-blue-300 ml-3">
                             <i class="fa-solid fa-user-gear"></i>
                         </button>
                         <button onclick="deleteLeader('${leader.id}', '${leader.username}')" class="text-red-500 hover:text-red-400">
@@ -172,28 +199,46 @@
             document.getElementById('sectorFieldContainer').style.display = role === 'SectorLeader' ? 'block' : 'none';
         }
 
+        function toggleLeaderEmploymentFields() {
+            const status = document.getElementById('leaderEmploymentStatus').value;
+            document.getElementById('leaderStudyFields').style.display = status === 'بيدرس' ? 'block' : 'none';
+            document.getElementById('leaderWorkFields').style.display = status === 'شغال' ? 'block' : 'none';
+        }
+
         function openAddLeaderModal() {
             document.getElementById('leaderForm').reset();
             document.getElementById('leaderId').value = '';
             document.getElementById('modalTitle').textContent = 'إضافة قائد جديد';
             document.getElementById('leaderUsername').disabled = false;
             toggleTroopField();
+            toggleLeaderEmploymentFields();
             document.getElementById('leaderModal').classList.remove('hidden');
         }
 
-        function openEditLeaderModal(id, name, username, password, role, troop, sector, phone) {
+        function openEditLeaderModal(id, name, username, password, role, troop, sector, phone, employmentStatus, educationLevel, university, faculty, academicYear, jobTitle, workplace, scoutingExperience) {
             document.getElementById('leaderId').value = id;
             document.getElementById('leaderName').value = name;
             document.getElementById('leaderUsername').value = username;
             document.getElementById('leaderUsername').disabled = true;
             document.getElementById('leaderPassword').value = password;
             document.getElementById('leaderRole').value = role;
-            document.getElementById('leaderPhone').value = phone;
+            document.getElementById('leaderPhone').value = phone || '';
             
             document.getElementById('leaderTroop').value = troop || 'أشبال وزهرات';
-            document.getElementById('leaderSector').value = sector || 'أشبال وزهرات';
+            document.getElementById('leaderSector').value = sector || 'ابتدائي';
+            
+            // تحميل البيانات الجديدة
+            document.getElementById('leaderEmploymentStatus').value = employmentStatus || '';
+            document.getElementById('leaderEducationLevel').value = educationLevel || '';
+            document.getElementById('leaderUniversity').value = university || '';
+            document.getElementById('leaderFaculty').value = faculty || '';
+            document.getElementById('leaderAcademicYear').value = academicYear || '';
+            document.getElementById('leaderJobTitle').value = jobTitle || '';
+            document.getElementById('leaderWorkplace').value = workplace || '';
+            document.getElementById('leaderScoutingExperience').value = scoutingExperience || '';
             
             toggleTroopField();
+            toggleLeaderEmploymentFields();
             document.getElementById('modalTitle').textContent = 'تعديل بيانات القائد';
             document.getElementById('leaderModal').classList.remove('hidden');
         }
@@ -210,6 +255,8 @@
             else if (role === 'SectorLeader') sector = document.getElementById('leaderSector').value;
             else { troop = 'الكل'; sector = 'الكل'; }
 
+            const employmentStatus = document.getElementById('leaderEmploymentStatus').value || null;
+
             const leaderData = {
                 full_name: document.getElementById('leaderName').value.trim(),
                 username: document.getElementById('leaderUsername').value.trim(),
@@ -217,8 +264,21 @@
                 role: role,
                 troop: troop,
                 sector: sector,
-                phone: document.getElementById('leaderPhone').value.trim() || null
+                phone: document.getElementById('leaderPhone').value.trim() || null,
+                employment_status: employmentStatus,
+                scouting_experience: document.getElementById('leaderScoutingExperience').value.trim() || null
             };
+
+            // إضافة حقول الدراسة أو العمل
+            if (employmentStatus === 'بيدرس') {
+                leaderData.education_level = document.getElementById('leaderEducationLevel').value.trim() || null;
+                leaderData.university = document.getElementById('leaderUniversity').value.trim() || null;
+                leaderData.faculty = document.getElementById('leaderFaculty').value.trim() || null;
+                leaderData.academic_year = document.getElementById('leaderAcademicYear').value.trim() || null;
+            } else if (employmentStatus === 'شغال') {
+                leaderData.job_title = document.getElementById('leaderJobTitle').value.trim() || null;
+                leaderData.workplace = document.getElementById('leaderWorkplace').value.trim() || null;
+            }
 
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true; saveBtn.textContent = 'جاري الحفظ...';

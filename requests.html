@@ -49,6 +49,7 @@
             <table class="w-full text-right whitespace-nowrap">
                 <thead>
                     <tr>
+                        <th class="p-4">الصورة</th>
                         <th class="p-4">الكود</th>
                         <th class="p-4">الاسم</th>
                         <th class="p-4">المرحلة</th>
@@ -64,6 +65,7 @@
             <table class="w-full text-right whitespace-nowrap">
                 <thead>
                     <tr>
+                        <th class="p-4">الصورة</th>
                         <th class="p-4">النوع</th>
                         <th class="p-4">الكود</th>
                         <th class="p-4">الاسم</th>
@@ -127,7 +129,7 @@
 
         async function loadAddRequests() {
             const tbody = document.getElementById('addTableBody');
-            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">جاري التحميل...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">جاري التحميل...</td></tr>`;
 
             let query = supabaseClient.from('scouts').select('*').eq('status', 'قيد الانتظار').order('created_at');
             if (currentUser.role === 'SectorLeader') {
@@ -139,19 +141,32 @@
             tbody.innerHTML = '';
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">${error.message}</td></tr>`;
                 return 0;
             }
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">مفيش طلبات إضافة</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">مفيش طلبات إضافة</td></tr>`;
                 return 0;
             }
 
+            // دالة لتحويل رابط Google Drive للصورة
+            function getDirectDriveLink(url) {
+                if (!url || url.trim() === '') return 'https://via.placeholder.com/150?text=No+Image';
+                const match = url.match(/(?:id=|d\/)([\w-]{25,33})/);
+                if (match && match[1]) {
+                    const driveLink = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+                    return `https://wsrv.nl/?url=${encodeURIComponent(driveLink)}&output=webp`;
+                }
+                return 'https://via.placeholder.com/150?text=No+Image';
+            }
+
             data.forEach(scout => {
+                const imgSrc = getDirectDriveLink(scout.photo_url);
                 const tr = document.createElement('tr');
                 tr.id = `add-row-${scout.scout_id}`;
                 tr.innerHTML = `
+                    <td class="p-4"><img src="${imgSrc}" class="w-11 h-11 rounded-full object-cover border border-gray-600"></td>
                     <td class="p-4 font-bold font-mono" style="color: var(--gold);">${scout.scout_id}</td>
                     <td class="p-4 text-white font-medium">${scout.full_name}</td>
                     <td class="p-4 text-gray-400">${scout.school_stage || '—'}</td>
@@ -170,7 +185,7 @@
 
         async function loadChangeRequests() {
             const tbody = document.getElementById('changesTableBody');
-            tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">جاري التحميل...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">جاري التحميل...</td></tr>`;
 
             let query = supabaseClient.from('scout_requests').select('*').eq('status', 'pending').order('created_at');
             if (currentUser.role === 'SectorLeader') {
@@ -185,12 +200,12 @@
                 const hint = error.message.includes('scout_requests')
                     ? `<br><span class="text-xs text-gray-500">شغّل SQL إنشاء جدول scout_requests من database_migration.sql</span>`
                     : '';
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-400">${error.message}${hint}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-red-400">${error.message}${hint}</td></tr>`;
                 return 0;
             }
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">مفيش طلبات تعديل أو حذف</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">مفيش طلبات تعديل أو حذف</td></tr>`;
                 return 0;
             }
 
@@ -199,11 +214,24 @@
             const scoutMap = {};
             (scoutsData || []).forEach(s => { scoutMap[s.scout_id] = s; });
 
+            // دالة لتحويل رابط Google Drive للصورة
+            function getDirectDriveLink(url) {
+                if (!url || url.trim() === '') return 'https://via.placeholder.com/150?text=No+Image';
+                const match = url.match(/(?:id=|d\/)([\w-]{25,33})/);
+                if (match && match[1]) {
+                    const driveLink = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+                    return `https://wsrv.nl/?url=${encodeURIComponent(driveLink)}&output=webp`;
+                }
+                return 'https://via.placeholder.com/150?text=No+Image';
+            }
+
             for (const req of data) {
                 const typeLabel = req.type === 'edit' ? 'تعديل' : 'حذف';
                 const typeClass = req.type === 'edit' ? 'type-edit' : 'type-delete';
                 const currentScout = scoutMap[req.scout_id];
                 const displayName = currentScout?.full_name || req.scout_data?.full_name || req.scout_id;
+                const photoUrl = currentScout?.photo_url || '';
+                const imgSrc = getDirectDriveLink(photoUrl);
 
                 // لو تعديل، نعمل مقارنة بين القديم والجديد
                 let comparisonHtml = '';
@@ -242,7 +270,7 @@
                     if (changes.length > 0) {
                         comparisonHtml = `
                             <tr>
-                                <td colspan="6" class="p-0">
+                                <td colspan="7" class="p-0">
                                     <div class="p-4 bg-[var(--dark3)] border-t border-b border-[rgba(201,168,76,0.15)]">
                                         <p class="text-xs font-bold text-[var(--gold)] mb-3 flex items-center gap-2">
                                             <i class="fa-solid fa-code-compare"></i> التغييرات المطلوبة (${changes.length}):
@@ -260,6 +288,7 @@
                 const tr = document.createElement('tr');
                 tr.id = `change-row-${req.id}`;
                 tr.innerHTML = `
+                    <td class="p-4"><img src="${imgSrc}" class="w-11 h-11 rounded-full object-cover border border-gray-600"></td>
                     <td class="p-4"><span class="type-badge ${typeClass}">${typeLabel}</span></td>
                     <td class="p-4 font-bold font-mono" style="color: var(--gold);">${req.scout_id}</td>
                     <td class="p-4 text-white font-medium">${displayName}</td>

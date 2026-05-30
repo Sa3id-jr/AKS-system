@@ -76,8 +76,32 @@
             card.className = 'leader-card';
             card.id = `card-${leader.id}`;
 
-            // Determine requested role from their registration (stored in troop/sector fields as hints)
-            // Default role select
+            // عرض الحالة الوظيفية
+            let employmentInfo = '';
+            if (leader.employment_status === 'بيدرس') {
+                employmentInfo = `<span class="info-chip"><i class="fa-solid fa-graduation-cap" style="color:var(--gold)"></i>بيدرس`;
+                if (leader.university) employmentInfo += ` - ${leader.university}`;
+                if (leader.faculty) employmentInfo += ` (${leader.faculty})`;
+                employmentInfo += `</span>`;
+            } else if (leader.employment_status === 'شغال') {
+                employmentInfo = `<span class="info-chip"><i class="fa-solid fa-briefcase" style="color:var(--gold)"></i>شغال`;
+                if (leader.job_title) employmentInfo += ` - ${leader.job_title}`;
+                employmentInfo += `</span>`;
+            } else if (leader.employment_status === 'لا يعمل') {
+                employmentInfo = `<span class="info-chip"><i class="fa-solid fa-circle" style="color:gray"></i>لا يعمل</span>`;
+            }
+
+            // عرض الخبرة الكشفية
+            let scoutingExp = '';
+            if (leader.scouting_experience) {
+                scoutingExp = `
+                    <div class="mt-3 p-3 bg-[var(--dark3)] rounded-lg border border-[rgba(201,168,76,0.1)]">
+                        <p class="text-xs font-bold text-[var(--gold)] mb-1"><i class="fa-solid fa-campground"></i> الخبرة الكشفية:</p>
+                        <p class="text-sm text-gray-300">${leader.scouting_experience}</p>
+                    </div>
+                `;
+            }
+
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-center gap-3">
@@ -89,12 +113,15 @@
                             <div class="flex gap-2 mt-1 flex-wrap">
                                 <span class="info-chip"><i class="fa-solid fa-at" style="color:var(--gold)"></i>${leader.username}</span>
                                 <span class="info-chip" dir="ltr"><i class="fa-solid fa-phone" style="color:var(--gold)"></i>${leader.phone || '—'}</span>
+                                ${employmentInfo}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                ${scoutingExp}
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 mt-4">
                     <div>
                         <label class="form-label">الرتبة</label>
                         <select id="role_${leader.id}" class="form-select" onchange="handleRoleChange('${leader.id}')">

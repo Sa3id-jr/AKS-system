@@ -9,6 +9,23 @@ console.log('👤 Current User Session:', currentUser);
 document.addEventListener('DOMContentLoaded', () => {
     applyRoleRestrictions();
     fetchScouts();
+    
+    // ربط زرار الحفظ/إرسال طلب التعديل
+    const submitBtn = document.getElementById('formSubmitBtn');
+    console.log('🔘 Submit Button:', submitBtn);
+    if (submitBtn) {
+        submitBtn.addEventListener('click', () => {
+            console.log('🖱️ Button clicked! currentEditingScoutId:', currentEditingScoutId);
+            if (!currentEditingScoutId) {
+                console.warn('⚠️ No scout ID set!');
+                return;
+            }
+            submitEditScout(currentEditingScoutId);
+        });
+        console.log('✅ Event listener attached');
+    } else {
+        console.error('❌ Submit button not found!');
+    }
 });
 
 const SUPABASE_URL = 'https://xbdprjxvtwfieiqncbez.supabase.co';
@@ -185,10 +202,11 @@ function renderTable() {
         const matchesTab = currentFilterStage === 'الكل' || scout.scout_group === currentFilterStage;
         return matchesTab && `${scout.full_name} ${scout.scout_id} ${scout.personal_phone}`.toLowerCase().includes(searchTerm);
     });
-    if (filteredScouts.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">مفيش نتايج...</td></tr>`; return; }
+    if (filteredScouts.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400">مفيش نتايج...</td></tr>`; return; }
     filteredScouts.forEach(scout => {
         const imgSrc = getDirectDriveLink(scout.photo_url);
         const patrolName = scout.patrol_id ? (patrolsMap[scout.patrol_id] || '—') : '—';
+        const comments = scout.comments || '—';
         const tr = document.createElement('tr');
         let actionsHtml = `<button onclick="viewProfile('${scout.scout_id}')" class="text-blue-600 hover:text-blue-900 text-lg"><i class="fa-solid fa-address-card"></i></button>`;
         if (canManageScoutsDirect || isTroopLeaderScout) {
@@ -202,6 +220,7 @@ function renderTable() {
             <td class="p-4"><span class="bg-[var(--dark3)] text-[var(--gold)] px-2.5 py-1 rounded-md text-xs font-bold border border-[var(--border)]">${scout.scout_group || '-'}</span></td>
             <td class="p-4 text-gray-400 text-sm">${patrolName}</td>
             <td class="p-4 text-gray-400 font-mono" dir="ltr">${scout.personal_phone || '-'}</td>
+            <td class="p-4 text-gray-300 text-sm max-w-xs truncate">${comments}</td>
             <td class="p-4 text-center">${actionsHtml}</td>
         `;
         tbody.appendChild(tr);
@@ -301,39 +320,74 @@ function validateScoutData(data) {
 
 // دالة التعديل
 async function submitEditScout(id) {
+    console.log('📝 submitEditScout called with ID:', id);
+    console.log('👤 isTroopLeaderScout:', isTroopLeaderScout);
+    
     const data = getFormData();
+    console.log('📋 Form data:', data);
 
     if (isTroopLeaderScout) {
         data.school_stage = getDbSchoolStage(currentUser.troop) || data.school_stage;
     }
 
-    if (!validateScoutData(data)) return;
+    if (!validateScoutData(data)) {
+        console.warn('⚠️ Validation failed');
+        return;
+    }
 
     const btn = document.getElementById('formSubmitBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
 
     try {
+        // حفظ الكومنتات مباشرة لكل القادة
+        const commentsOnly = { comments: data.comments };
+        const { error: commentsError } = await supabaseClient.from('scouts').update(commentsOnly).eq('scout_id', id);
+        if (commentsError) {
+            console.error('❌ Comments save error:', commentsError);
+        } else {
+            console.log('✅ Comments saved directly');
+        }
+        
         if (isTroopLeaderScout) {
+            console.log('📤 Sending request as TroopLeader...');
             const scout = allScouts.find(s => s.scout_id === id);
-            const { error } = await supabaseClient.from('scout_requests').insert([{
+            
+            // إزالة الكومنتات من البيانات المرسلة للموافقة
+            const dataWithoutComments = { ...data };
+            delete dataWithoutComments.comments;
+            
+            const requestData = {
                 scout_id: id,
                 type: 'edit',
-                scout_data: data,
+                scout_data: dataWithoutComments,
                 school_stage: scout?.school_stage || data.school_stage,
                 requested_by: currentUser.username,
                 status: 'pending'
-            }]);
-            if (error) throw error;
-            alert('تم إرسال طلب التعديل لقائد القطاع / الماستر للموافقة.');
+            };
+            console.log('📦 Request data:', requestData);
+            
+            const { error } = await supabaseClient.from('scout_requests').insert([requestData]);
+            if (error) {
+                console.error('❌ Supabase error:', error);
+                throw error;
+            }
+            console.log('✅ Request sent successfully');
+            alert('تم حفظ الملاحظات وإرسال طلب التعديل لقائد القطاع / الماستر للموافقة.');
         } else {
+            console.log('💾 Saving directly...');
             const { error } = await supabaseClient.from('scouts').update(data).eq('scout_id', id);
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Supabase error:', error);
+                throw error;
+            }
+            console.log('✅ Saved successfully');
             alert('البيانات اتعدلت بنجاح.');
         }
         closeModal('formModal');
         fetchScouts();
     } catch (err) {
+        console.error('💥 Error:', err);
         alert('مشكلة: ' + (err.message || err));
     }
 
@@ -353,12 +407,13 @@ async function viewProfile(id) {
     document.getElementById('modalID').textContent = `الكود: ${scout.scout_id}`;
     document.getElementById('modalStageBadge').textContent = scout.scout_group;
 
-    const fieldLabels = { 'personal_phone': 'موبايل الكشاف', 'father_phone': 'تليفون الأب', 'mother_phone': 'تليفون الأم', 'address': 'العنوان بالكامل', 'school_stage': 'المرحلة الدراسية', 'school_year': 'السنة الدراسية', 'confession_father': 'أب الاعتراف', 'has_diseases': 'أمراض؟', 'diseases_details': 'تفاصيل الصحة' };
+    const fieldLabels = { 'personal_phone': 'موبايل الكشاف', 'father_phone': 'تليفون الأب', 'mother_phone': 'تليفون الأم', 'address': 'العنوان بالكامل', 'school_stage': 'المرحلة الدراسية', 'school_year': 'السنة الدراسية', 'confession_father': 'أب الاعتراف', 'has_diseases': 'أمراض؟', 'diseases_details': 'تفاصيل الصحة', 'comments': 'ملاحظات القادة' };
     let detailsHTML = '';
     Object.keys(fieldLabels).forEach(key => {
         let value = scout[key] || '-';
         let cardClass = (key === 'has_diseases' && value === 'نعم') ? 'bg-[rgba(139,26,26,0.2)] border-red-900' : 'bg-[var(--dark2)] border-[var(--border)]';
-        detailsHTML += `<div class="p-3 border rounded-lg ${cardClass} flex flex-col gap-1"><span class="text-xs font-bold text-[var(--gold)]">${fieldLabels[key]}</span><span class="text-sm text-gray-200 break-words" ${key.includes('phone') ? 'dir="ltr"' : ''}>${value}</span></div>`;
+        let colSpan = (key === 'comments' || key === 'address') ? 'sm:col-span-2 md:col-span-3' : '';
+        detailsHTML += `<div class="p-3 border rounded-lg ${cardClass} flex flex-col gap-1 ${colSpan}"><span class="text-xs font-bold text-[var(--gold)]">${fieldLabels[key]}</span><span class="text-sm text-gray-200 break-words" ${key.includes('phone') ? 'dir="ltr"' : ''}>${value}</span></div>`;
     });
     document.getElementById('modalDetails').innerHTML = detailsHTML;
 
@@ -553,18 +608,6 @@ function setInputValue(id, value) {
 }
 
 function getFormData() {
-    const certSelect = document.getElementById('formCertificate');
-    const certOtherInput = document.getElementById('formCertificateOther');
-    let certificateValue = null;
-    
-    if (certSelect && certSelect.value) {
-        if (certSelect.value === 'other' && certOtherInput) {
-            certificateValue = certOtherInput.value.trim() || null;
-        } else {
-            certificateValue = certSelect.value;
-        }
-    }
-    
     return {
         full_name: readInputValue('formFullName'),
         birth_date: readInputValue('formBirthDate'),
@@ -575,7 +618,7 @@ function getFormData() {
         address: readInputValue('formAddress'),
         school_stage: readInputValue('formSchoolStage'),
         school_year: readInputValue('formSchoolYear'),
-        certificate: certificateValue,
+        certificate: readInputValue('formCertificate'),
         personal_email: readInputValue('formPersonalEmail'),
         facebook_account: readInputValue('formFacebook'),
         instagram_account: readInputValue('formInstagram'),
@@ -589,7 +632,8 @@ function getFormData() {
         has_diseases: readInputValue('formHasDiseases') || 'لا',
         diseases_details: readInputValue('formDiseasesDetails'),
         hobbies: readInputValue('formHobbies'),
-        photo_url: readInputValue('formPhotoUrl')
+        photo_url: readInputValue('formPhotoUrl'),
+        comments: readInputValue('formComments')
     };
 }
 
@@ -616,27 +660,8 @@ function openEditModal(id) {
     setInputValue('formBirthDate', scout.birth_date);
     setInputValue('formGender', scout.gender);
     setInputValue('formSchoolStage', scout.school_stage);
-    
-    // تحديث الـ dropdowns بناءً على المرحلة
-    updateSchoolYearAndCertificateInModal();
-    
     setInputValue('formSchoolYear', scout.school_year);
-    
-    // معالجة الشهادة
-    const certSelect = document.getElementById('formCertificate');
-    const certOtherContainer = document.getElementById('certificateOtherContainerModal');
-    const certOtherInput = document.getElementById('formCertificateOther');
-    
-    const knownCerts = ['عام', 'IG', 'IB', 'American', 'باكالوريا', 'صنايع', 'تجاري'];
-    if (scout.certificate && !knownCerts.includes(scout.certificate)) {
-        // لو الشهادة مش من الاختيارات المعروفة، يبقى "أخرى"
-        certSelect.value = 'other';
-        if (certOtherContainer) certOtherContainer.style.display = 'block';
-        if (certOtherInput) certOtherInput.value = scout.certificate;
-    } else {
-        setInputValue('formCertificate', scout.certificate);
-        if (certOtherContainer) certOtherContainer.style.display = 'none';
-    }
+    setInputValue('formCertificate', scout.certificate);
     
     setInputValue('formPersonalPhone', scout.personal_phone);
     setInputValue('formFatherPhone', scout.father_phone);
@@ -656,6 +681,7 @@ function openEditModal(id) {
     setInputValue('formHasDiseases', scout.has_diseases || 'لا');
     setInputValue('formDiseasesDetails', scout.diseases_details);
     setInputValue('formPhotoUrl', scout.photo_url);
+    setInputValue('formComments', scout.comments);
 
     document.getElementById('formModal')?.classList.remove('hidden');
 }
@@ -694,72 +720,9 @@ async function deleteScout(id) {
 
 // دوال تحديث السنة الدراسية والشهادة في المودال
 function updateSchoolYearAndCertificateInModal() {
-    const stage = document.getElementById('formSchoolStage').value;
-    const yearSelect = document.getElementById('formSchoolYear');
-    const certSelect = document.getElementById('formCertificate');
-    const certOtherContainer = document.getElementById('certificateOtherContainerModal');
-    
-    // حفظ القيم الحالية
-    const currentYear = yearSelect.value;
-    const currentCert = certSelect.value;
-    
-    // مسح الاختيارات القديمة
-    yearSelect.innerHTML = '<option value="">-- اختار --</option>';
-    certSelect.innerHTML = '<option value="">-- اختار --</option>';
-    if (certOtherContainer) certOtherContainer.style.display = 'none';
-    
-    if (stage === 'براعم') {
-        yearSelect.innerHTML = '<option value="براعم">براعم</option>';
-        certSelect.innerHTML = '<option value="عام">عام</option>';
-        
-    } else if (stage === 'ابتدائي') {
-        yearSelect.innerHTML = `
-            <option value="">-- اختار --</option>
-            <option value="أولى">أولى</option>
-            <option value="تانية">تانية</option>
-            <option value="تالتة">تالتة</option>
-            <option value="رابعة">رابعة</option>
-            <option value="خامسة">خامسة</option>
-            <option value="سادسة">سادسة</option>
-        `;
-        certSelect.innerHTML = '<option value="عام">عام</option>';
-        
-    } else if (stage === 'اعدادي') {
-        yearSelect.innerHTML = `
-            <option value="">-- اختار --</option>
-            <option value="أولى">أولى</option>
-            <option value="تانية">تانية</option>
-            <option value="تالتة">تالتة</option>
-        `;
-        certSelect.innerHTML = '<option value="عام">عام</option>';
-        
-    } else if (stage === 'ثانوي') {
-        yearSelect.innerHTML = `
-            <option value="">-- اختار --</option>
-            <option value="أولى">أولى</option>
-            <option value="تانية">تانية</option>
-            <option value="تالتة">تالتة</option>
-        `;
-        certSelect.innerHTML = `
-            <option value="">-- اختار --</option>
-            <option value="عام">عام</option>
-            <option value="IG">IG</option>
-            <option value="IB">IB</option>
-            <option value="American">American</option>
-            <option value="باكالوريا">باكالوريا</option>
-            <option value="صنايع">صنايع</option>
-            <option value="تجاري">تجاري</option>
-            <option value="other">أخرى (اكتب بنفسك)</option>
-        `;
-    }
-    
-    // استرجاع القيم القديمة لو موجودة
-    if (currentYear && Array.from(yearSelect.options).some(opt => opt.value === currentYear)) {
-        yearSelect.value = currentYear;
-    }
-    if (currentCert && Array.from(certSelect.options).some(opt => opt.value === currentCert)) {
-        certSelect.value = currentCert;
-    }
+    // الدالة دي مش محتاجة في dashboard.html لأن الحقول input مش select
+    // بس نخليها فاضية عشان ميحصلش error
+    return;
 }
 
 function handleCertificateChangeInModal() {
@@ -776,8 +739,3 @@ function handleCertificateChangeInModal() {
         }
     }
 }
-
-document.getElementById('formSubmitBtn')?.addEventListener('click', () => {
-    if (!currentEditingScoutId) return;
-    submitEditScout(currentEditingScoutId);
-});

@@ -126,6 +126,11 @@
         let availableScouts = [];    
 
         function getUserSector() {
+            console.log('getUserSector called');
+            console.log('currentUser.role:', currentUser.role);
+            console.log('currentUser.sector:', currentUser.sector);
+            console.log('currentUser.troop:', currentUser.troop);
+            
             if (currentUser.role === 'SectorLeader') {
                 return currentUser.sector;
             } else if (currentUser.role === 'TroopLeader') {
@@ -147,6 +152,7 @@
         }
 
         const userSector = getUserSector();
+        console.log('Final userSector:', userSector);
 
         if (!canCreateTasks) {
             document.getElementById('addTaskBtn').style.display = 'none';
@@ -166,32 +172,26 @@
 
             let query = supabaseClient.from('follow_up_tasks').select('*').order('task_date', { ascending: false });
 
-            if (!isMasterOrGeneral && userSector) {
+            // قائد الفرقة: جيب المهام المعينة له فقط (بغض النظر عن القطاع)
+            if (currentUser.role === 'TroopLeader') {
+                query = query.eq('assigned_to', currentUser.id);
+            } 
+            // قائد القطاع: جيب مهام قطاعه فقط
+            else if (isSectorLeader && userSector) {
                 query = query.eq('sector', userSector);
             }
+            // Master/General: جيب كل المهام (مفيش فلتر)
 
             const { data, error } = await query;
 
             if (error) {
                 tabsContainer.innerHTML = '<div class="text-center text-red-400 py-2 w-full">فشل التحميل</div>';
+                console.error('Error loading tasks:', error);
                 return;
             }
 
             let rawTasks = data || [];
-
-            if (currentUser.role === 'TroopLeader') {
-                // فلترة بـ assigned_to (username) أولاً، لو مش موجود نرجع للـ notes القديمة كـ fallback
-                const currentLeaderName = currentUser.full_name ? currentUser.full_name.trim() : '';
-                allTasks = rawTasks.filter(task => {
-                    // الطريقة الجديدة: مقارنة بـ username
-                    if (task.assigned_to && task.assigned_to === currentUser.username) return true;
-                    // fallback للمهام القديمة المسجلة بالطريقة القديمة (notes)
-                    if (!task.assigned_to && task.notes && task.notes.includes(currentLeaderName)) return true;
-                    return false;
-                });
-            } else {
-                allTasks = rawTasks;
-            }
+            allTasks = rawTasks;
 
             if (allTasks.length === 0) {
                 tabsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 w-full">مفيش مهام افتقاد حالياً تخصك</div>';
@@ -219,14 +219,9 @@
                 const dateObj = new Date(task.task_date);
                 const dateStr = dateObj.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
                 
-                // اسم القائد: من assigned_to_name أو من notes القديمة
-                const leaderNameDisplay = task.assigned_to_name || 
-                    (task.notes?.match(/\[([^\]]+)\]/)?.[1]) || '';
-                
                 btn.innerHTML = `
                     <i class="fa-solid fa-calendar-day ml-1"></i>
                     ${dateStr}
-                    ${leaderNameDisplay ? `<span class="text-xs opacity-60 mr-1">(${leaderNameDisplay})</span>` : ''}
                     ${canCreateTasks ? `<span class="close-tab" onclick="event.stopPropagation(); deleteTask('${task.id}')"><i class="fa-solid fa-xmark"></i></span>` : ''}
                 `;
                 tabsContainer.appendChild(btn);
@@ -265,8 +260,8 @@
                     <div class="flex justify-between items-start mb-6">
                         <div>
                             <h2 class="text-xl font-bold text-white mb-2">مهمة افتقاد - ${new Date(task.task_date).toLocaleDateString('ar-EG')}</h2>
-                            ${task.assigned_to_name ? `<p class="text-sm text-[var(--gold)] font-bold mb-1"><i class="fa-solid fa-user-tie ml-1"></i> المعين: ${task.assigned_to_name}</p>` : (task.notes && task.notes.includes('[') ? `<p class="text-sm text-[var(--gold)] font-bold mb-1"><i class="fa-solid fa-user-tie ml-1"></i> ${task.notes.match(/\[([^\]]+)\]/)?.[1] || ''}</p>` : '')}
-                            ${task.notes ? `<p class="text-sm text-gray-400">${task.notes.replace(/^\[[^\]]+\]\s*/, '')}</p>` : ''}
+                            ${task.assigned_to_name ? `<p class="text-sm text-[var(--gold)] mb-1"><i class="fa-solid fa-user-tie ml-1"></i>معين لـ: ${task.assigned_to_name}</p>` : ''}
+                            ${task.notes ? `<p class="text-sm text-gray-400">${task.notes}</p>` : ''}
                             <p class="text-xs text-gray-500 mt-1">أنشأها: ${task.created_by}</p>
                         </div>
                         <div class="text-left">
@@ -366,6 +361,7 @@
             const leaderSelect = document.getElementById('taskLeaderSelect');
             leaderSelect.innerHTML = '<option value="">جاري التحميل...</option>';
 
+            // تحديد الفرق المسموحة حسب قطاع قائد القطاع
             const sectorTroopMap = {
                 'براعم': ['براعم'],
                 'ابتدائي': ['أشبال وزهرات', 'أشبال', 'زهرات'],
@@ -374,17 +370,24 @@
             };
             const allowedTroops = sectorTroopMap[userSector] || [];
 
+            console.log('Current Sector:', userSector);
+            console.log('Allowed Troops:', allowedTroops);
+
             let query = supabaseClient
                 .from('leaders')
-                .select('id, full_name, troop, role, username')
+                .select('id, full_name, troop, role, sector')
                 .eq('status', 'نشط')
                 .eq('role', 'TroopLeader');
 
+            // فلتر على أساس الفرق المسموحة
             if (allowedTroops.length > 0) {
                 query = query.in('troop', allowedTroops);
             }
 
             const { data: leaders, error } = await query;
+            
+            console.log('Leaders from DB:', leaders);
+            
             leaderSelect.innerHTML = '<option value="">-- اختر قائد --</option>';
 
             if (error || !leaders || leaders.length === 0) {
@@ -503,19 +506,15 @@
                 phone: cb.dataset.phone || null
             }));
 
-            // نجيب username القائد المختار
-            const selectedLeader = availableLeaders.find(l => l.id === selectedLeaderId);
-            const assignedToUsername = selectedLeader?.username || selectedLeaderId;
-
             const { data: newTask, error: taskError } = await supabaseClient
                 .from('follow_up_tasks')
                 .insert([{
                     task_date: taskDate,
                     sector: userSector,
                     created_by: currentUser.full_name,
-                    assigned_to: assignedToUsername,
+                    assigned_to: selectedLeaderId,
                     assigned_to_name: selectedLeaderName,
-                    notes: notes || ''
+                    notes: notes
                 }])
                 .select()
                 .single();
