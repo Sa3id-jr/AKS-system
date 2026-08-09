@@ -80,13 +80,14 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">المرحلة الدراسية</label>
+                        <label class="form-label">الفريق</label>
                         <select id="formSchoolStage" class="form-input" onchange="updateSchoolYearAndCertificate()">
                             <option value="">-- اختار --</option>
                             <option value="براعم">براعم</option>
-                            <option value="ابتدائي">ابتدائي</option>
-                            <option value="اعدادي">اعدادي</option>
-                            <option value="ثانوي">ثانوي</option>
+                            <option value="ابتدائي">أشبال وزهرات</option>
+                            <option value="اعدادي">مبتدئ ومرشدات</option>
+                            <option value="ثانوي">متقدم ورائدات</option>
+                            <option value="مرشح جوالة">مرشح جوالة</option>
                         </select>
                     </div>
                     <div>
@@ -104,6 +105,25 @@
                     <div id="certificateOtherContainer" style="display: none;">
                         <label class="form-label">اكتب نوع الشهادة</label>
                         <input id="formCertificateOther" type="text" class="form-input" placeholder="اكتب نوع الشهادة">
+                    </div>
+                    
+                    <!-- حقول مرشح جوالة -->
+                    <div id="gawalaFieldsContainer" style="display: none;" class="sm:col-span-2 md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-5 mt-4 p-4 border border-[var(--gold)] rounded-lg">
+                        <div class="sm:col-span-3">
+                            <p class="text-sm font-bold text-[var(--gold)] mb-2"><i class="fa-solid fa-graduation-cap ml-2"></i>بيانات الدراسة الجامعية</p>
+                        </div>
+                        <div>
+                            <label class="form-label">الجامعة</label>
+                            <input id="formGawalaUniversity" type="text" class="form-input" placeholder="مثال: جامعة القاهرة">
+                        </div>
+                        <div>
+                            <label class="form-label">الكلية</label>
+                            <input id="formGawalaFaculty" type="text" class="form-input" placeholder="مثال: هندسة">
+                        </div>
+                        <div>
+                            <label class="form-label">السنة الدراسية</label>
+                            <input id="formGawalaAcademicYear" type="text" class="form-input" placeholder="مثال: السنة الثانية">
+                        </div>
                     </div>
                 </div>
 
@@ -384,11 +404,13 @@
             const yearSelect = document.getElementById('formSchoolYear');
             const certSelect = document.getElementById('formCertificate');
             const certOtherContainer = document.getElementById('certificateOtherContainer');
+            const gawalaContainer = document.getElementById('gawalaFieldsContainer');
             
-            // مسح الاختيارات القديمة
+            // مسح الاختيارات القديمة وإخفاء الحقول الإضافية
             yearSelect.innerHTML = '<option value="">-- اختار --</option>';
             certSelect.innerHTML = '<option value="">-- اختار --</option>';
             certOtherContainer.style.display = 'none';
+            gawalaContainer.style.display = 'none';
             
             if (stage === 'براعم') {
                 // براعم: سنة واحدة فقط
@@ -398,7 +420,7 @@
                 certSelect.value = 'عام';
                 
             } else if (stage === 'ابتدائي') {
-                // ابتدائي: من أولى لسادسة
+                // أشبال وزهرات: من أولى لسادسة
                 yearSelect.innerHTML = `
                     <option value="">-- اختار --</option>
                     <option value="أولى">أولى</option>
@@ -412,7 +434,7 @@
                 certSelect.value = 'عام';
                 
             } else if (stage === 'اعدادي') {
-                // اعدادي: أولى وتانية وتالتة
+                // مبتدئ ومرشدات: أولى وتانية وتالتة
                 yearSelect.innerHTML = `
                     <option value="">-- اختار --</option>
                     <option value="أولى">أولى</option>
@@ -423,7 +445,7 @@
                 certSelect.value = 'عام';
                 
             } else if (stage === 'ثانوي') {
-                // ثانوي: أولى وتانية وتالتة + اختيارات متعددة للشهادة
+                // متقدم ورائدات: أولى وتانية وتالتة + اختيارات متعددة للشهادة
                 yearSelect.innerHTML = `
                     <option value="">-- اختار --</option>
                     <option value="أولى">أولى</option>
@@ -441,6 +463,13 @@
                     <option value="تجاري">تجاري</option>
                     <option value="other">أخرى (اكتب بنفسك)</option>
                 `;
+            } else if (stage === 'مرشح جوالة') {
+                // مرشح جوالة: جامعة (اختياري)
+                yearSelect.innerHTML = '<option value="">-- اختياري --</option>';
+                certSelect.innerHTML = '<option value="عام">عام</option>';
+                certSelect.value = 'عام';
+                // إظهار حقول الجامعة
+                document.getElementById('gawalaFieldsContainer').style.display = 'grid';
             }
         }
         
@@ -456,6 +485,7 @@
                 document.getElementById('formCertificateOther').value = '';
             }
         }
+
     </script>
 </body>
 </html>

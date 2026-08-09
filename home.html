@@ -97,12 +97,6 @@
                 <p>تسجيل بيانات كشاف جديد في السيستم</p>
             </div>
 
-            <div class="dash-card" onclick="window.location.href='fast_attendance.html'">
-                <i class="fa-solid fa-clipboard-user"></i>
-                <h3>تمام الغياب</h3>
-                <p>أخذ الغياب وتسجيل الحضور</p>
-            </div>
-
             <div class="dash-card" onclick="window.location.href='follow_up.html'">
                 <i class="fa-solid fa-phone"></i>
                 <h3>الافتقاد</h3>
@@ -222,7 +216,9 @@
             'مرشدات': 'اعدادي',
             'متقدم ورائدات': 'ثانوي',
             'كشاف متقدم': 'ثانوي',
-            'رائدات': 'ثانوي'
+            'رائدات': 'ثانوي',
+            'مرشح جوالة': 'مرشح جوالة',
+            'عشيرة الجوالة': 'عشيرة جوالة'
         };
 
         async function loadLeadersInSameSector() {
@@ -272,7 +268,9 @@
                     'براعم': ['براعم'],
                     'ابتدائي': ['أشبال وزهرات', 'أشبال', 'زهرات'],
                     'اعدادي': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'],
-                    'ثانوي': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات']
+                    'ثانوي': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات'],
+                    'مرشح جوالة': ['مرشح جوالة'],
+                    'عشيرة جوالة': ['عشيرة الجوالة']
                 };
                 const allowedTroops = sectorTroopMap[user.sector] || [];
                 
@@ -346,7 +344,7 @@
 
                 let scoutQuery = supabaseClient.from('scouts').select('scout_id', { count: 'exact', head: true }).eq('status', 'قيد الانتظار');
                 if (role === 'SectorLeader') {
-                    const sectorStageMap = { 'براعم': 'براعم', 'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي' };
+                    const sectorStageMap = { 'براعم': 'براعم', 'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي', 'مرشح جوالة': 'مرشح جوالة' };
                     const stage = sectorStageMap[user.sector] || user.sector;
                     if (stage) scoutQuery = scoutQuery.eq('school_stage', stage);
                 }
@@ -355,7 +353,7 @@
 
                 let changeQuery = supabaseClient.from('scout_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending');
                 if (role === 'SectorLeader') {
-                    const sectorStageMap = { 'براعم': 'براعم', 'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي' };
+                    const sectorStageMap = { 'براعم': 'براعم', 'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي', 'مرشح جوالة': 'مرشح جوالة' };
                     const stage = sectorStageMap[user.sector] || user.sector;
                     if (stage) changeQuery = changeQuery.eq('school_stage', stage);
                 }

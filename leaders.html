@@ -81,7 +81,7 @@
                         <option value="SectorLeader">قائد قطاع</option>
                         <option value="General">قائد عام</option>
                         <option value="Master">ماستر</option>
-                        <option value="Viewer">مشاهد</option>
+                        <option value="Viewer">عشيرة</option>
                     </select>
                 </div>
                 <div id="troopFieldContainer">
@@ -91,15 +91,19 @@
                         <option value="أشبال وزهرات">أشبال وزهرات</option>
                         <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
                         <option value="متقدم ورائدات">متقدم ورائدات</option>
+                        <option value="مرشح جوالة">مرشح جوالة</option>
+                        <option value="عشيرة الجوالة">عشيرة الجوالة</option>
                     </select>
                 </div>
                 <div id="sectorFieldContainer" class="hidden">
                     <label class="form-label">القطاع المسئول *</label>
                     <select id="leaderSector" class="form-input">
                         <option value="براعم">براعم</option>
-                        <option value="ابتدائي">ابتدائي</option>
-                        <option value="اعدادي">اعدادي</option>
-                        <option value="ثانوي">ثانوي</option>
+                        <option value="ابتدائي">أشبال وزهرات</option>
+                        <option value="اعدادي">مبتدئ ومرشدات</option>
+                        <option value="ثانوي">متقدم ورائدات</option>
+                        <option value="مرشح جوالة">مرشح جوالة</option>
+                        <option value="عشيرة جوالة">عشيرة الجوالة</option>
                     </select>
                 </div>
 
@@ -162,7 +166,7 @@
             }
 
             data.forEach(leader => {
-                let roleArabic = leader.role === 'Master' ? 'ماستر' : leader.role === 'General' ? 'قائد عام' : leader.role === 'Viewer' ? 'مشاهد' : leader.role === 'SectorLeader' ? 'قائد قطاع' : 'قائد فرقة';
+                let roleArabic = leader.role === 'Master' ? 'ماستر' : leader.role === 'General' ? 'قائد عام' : leader.role === 'Viewer' ? 'عشيرة' : leader.role === 'SectorLeader' ? 'قائد قطاع' : 'قائد فرقة';
                 let troopDisplay = (leader.role === 'Master' || leader.role === 'General' || leader.role === 'Viewer') ? 'الكل' : (leader.role === 'SectorLeader' ? `قطاع: ${leader.sector || '-'}` : `فرقة: ${leader.troop || '-'}`);
                 
                 let actionsHtml = '';

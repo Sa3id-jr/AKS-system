@@ -76,19 +76,23 @@
             card.className = 'leader-card';
             card.id = `card-${leader.id}`;
 
-            // عرض الحالة الوظيفية
+            // عرض الحالة الوظيفية مع التفاصيل الكاملة
             let employmentInfo = '';
             if (leader.employment_status === 'بيدرس') {
                 employmentInfo = `<span class="info-chip"><i class="fa-solid fa-graduation-cap" style="color:var(--gold)"></i>بيدرس`;
                 if (leader.university) employmentInfo += ` - ${leader.university}`;
                 if (leader.faculty) employmentInfo += ` (${leader.faculty})`;
+                if (leader.academic_year) employmentInfo += ` - ${leader.academic_year}`;
                 employmentInfo += `</span>`;
             } else if (leader.employment_status === 'شغال') {
                 employmentInfo = `<span class="info-chip"><i class="fa-solid fa-briefcase" style="color:var(--gold)"></i>شغال`;
                 if (leader.job_title) employmentInfo += ` - ${leader.job_title}`;
+                if (leader.workplace) employmentInfo += ` في ${leader.workplace}`;
                 employmentInfo += `</span>`;
             } else if (leader.employment_status === 'لا يعمل') {
-                employmentInfo = `<span class="info-chip"><i class="fa-solid fa-circle" style="color:gray"></i>لا يعمل</span>`;
+                employmentInfo = `<span class="info-chip"><i class="fa-solid fa-circle" style="color:gray"></i>لا يعمل`;
+                if (leader.education_level) employmentInfo += ` - ${leader.education_level}`;
+                employmentInfo += `</span>`;
             }
 
             // عرض الخبرة الكشفية
@@ -98,6 +102,44 @@
                     <div class="mt-3 p-3 bg-[var(--dark3)] rounded-lg border border-[rgba(201,168,76,0.1)]">
                         <p class="text-xs font-bold text-[var(--gold)] mb-1"><i class="fa-solid fa-campground"></i> الخبرة الكشفية:</p>
                         <p class="text-sm text-gray-300">${leader.scouting_experience}</p>
+                    </div>
+                `;
+            }
+
+            // عرض تفاصيل إضافية للحالة التعليمية/المهنية
+            let additionalDetails = '';
+            if (leader.employment_status === 'بيدرس') {
+                const details = [];
+                if (leader.education_level) details.push(`المرحلة: ${leader.education_level}`);
+                if (leader.university) details.push(`الجامعة: ${leader.university}`);
+                if (leader.faculty) details.push(`الكلية: ${leader.faculty}`);
+                if (leader.academic_year) details.push(`السنة: ${leader.academic_year}`);
+                if (details.length > 0) {
+                    additionalDetails = `
+                        <div class="mt-2 p-2 bg-[var(--dark3)] rounded border border-[rgba(201,168,76,0.1)]">
+                            <p class="text-xs text-[var(--gold)] font-bold mb-1">تفاصيل الدراسة:</p>
+                            <p class="text-xs text-gray-300">${details.join(' • ')}</p>
+                        </div>
+                    `;
+                }
+            } else if (leader.employment_status === 'شغال') {
+                const details = [];
+                if (leader.job_title) details.push(`المسمى: ${leader.job_title}`);
+                if (leader.workplace) details.push(`مكان العمل: ${leader.workplace}`);
+                if (leader.education_level) details.push(`المؤهل: ${leader.education_level}`);
+                if (details.length > 0) {
+                    additionalDetails = `
+                        <div class="mt-2 p-2 bg-[var(--dark3)] rounded border border-[rgba(201,168,76,0.1)]">
+                            <p class="text-xs text-[var(--gold)] font-bold mb-1">تفاصيل العمل:</p>
+                            <p class="text-xs text-gray-300">${details.join(' • ')}</p>
+                        </div>
+                    `;
+                }
+            } else if (leader.employment_status === 'لا يعمل' && leader.education_level) {
+                additionalDetails = `
+                    <div class="mt-2 p-2 bg-[var(--dark3)] rounded border border-[rgba(201,168,76,0.1)]">
+                        <p class="text-xs text-[var(--gold)] font-bold mb-1">المؤهل الدراسي:</p>
+                        <p class="text-xs text-gray-300">${leader.education_level}</p>
                     </div>
                 `;
             }
@@ -119,34 +161,48 @@
                     </div>
                 </div>
 
+                ${additionalDetails}
                 ${scoutingExp}
+
+                <div class="mt-4 p-3 bg-[rgba(201,168,76,0.05)] border border-[rgba(201,168,76,0.2)] rounded-lg">
+                    <p class="text-xs font-bold text-[var(--gold)] mb-2"><i class="fa-solid fa-clipboard-list"></i> الطلب المقدم:</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div><span class="text-gray-400">الرتبة المطلوبة:</span> <span class="text-white font-bold">${getRoleDisplayName(leader.role)}</span></div>
+                        ${leader.role === 'TroopLeader' ? `<div><span class="text-gray-400">الفرقة المطلوبة:</span> <span class="text-white font-bold">${leader.troop || 'غير محدد'}</span></div>` : ''}
+                        ${leader.role === 'SectorLeader' ? `<div><span class="text-gray-400">القطاع المطلوب:</span> <span class="text-white font-bold">${getSectorDisplayName(leader.sector)}</span></div>` : ''}
+                    </div>
+                </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 mt-4">
                     <div>
                         <label class="form-label">الرتبة</label>
                         <select id="role_${leader.id}" class="form-select" onchange="handleRoleChange('${leader.id}')">
-                            <option value="TroopLeader">قائد فرقة</option>
-                            <option value="SectorLeader">قائد قطاع</option>
-                            <option value="General">قائد عام</option>
-                            <option value="Viewer">مشاهد</option>
+                            <option value="TroopLeader" ${leader.role === 'TroopLeader' ? 'selected' : ''}>قائد فرقة</option>
+                            <option value="SectorLeader" ${leader.role === 'SectorLeader' ? 'selected' : ''}>قائد قطاع</option>
+                            <option value="General" ${leader.role === 'General' ? 'selected' : ''}>قائد عام</option>
+                            <option value="Viewer" ${leader.role === 'Viewer' ? 'selected' : ''}>عشيرة</option>
                         </select>
                     </div>
-                    <div id="troop_wrap_${leader.id}">
+                    <div id="troop_wrap_${leader.id}" ${leader.role !== 'TroopLeader' ? 'class="hidden"' : ''}>
                         <label class="form-label">الفرقة</label>
                         <select id="troop_${leader.id}" class="form-select">
-                            <option value="براعم">براعم</option>
-                            <option value="أشبال وزهرات">أشبال وزهرات (ابتدائي)</option>
-                            <option value="مبتدئ ومرشدات">مبتدئ ومرشدات (اعدادي)</option>
-                            <option value="متقدم ورائدات">متقدم ورائدات (ثانوي)</option>
+                            <option value="براعم" ${leader.troop === 'براعم' ? 'selected' : ''}>براعم</option>
+                            <option value="أشبال وزهرات" ${leader.troop === 'أشبال وزهرات' ? 'selected' : ''}>أشبال وزهرات</option>
+                            <option value="مبتدئ ومرشدات" ${leader.troop === 'مبتدئ ومرشدات' ? 'selected' : ''}>مبتدئ ومرشدات</option>
+                            <option value="متقدم ورائدات" ${leader.troop === 'متقدم ورائدات' ? 'selected' : ''}>متقدم ورائدات</option>
+                            <option value="مرشح جوالة" ${leader.troop === 'مرشح جوالة' ? 'selected' : ''}>مرشح جوالة</option>
+                            <option value="عشيرة الجوالة" ${leader.troop === 'عشيرة الجوالة' ? 'selected' : ''}>عشيرة الجوالة</option>
                         </select>
                     </div>
-                    <div id="sector_wrap_${leader.id}" class="hidden">
+                    <div id="sector_wrap_${leader.id}" ${leader.role !== 'SectorLeader' ? 'class="hidden"' : ''}>
                         <label class="form-label">القطاع</label>
                         <select id="sector_${leader.id}" class="form-select">
-                            <option value="براعم">براعم</option>
-                            <option value="ابتدائي">ابتدائي</option>
-                            <option value="اعدادي">إعدادي</option>
-                            <option value="ثانوي">ثانوي</option>
+                            <option value="براعم" ${leader.sector === 'براعم' ? 'selected' : ''}>براعم</option>
+                            <option value="ابتدائي" ${leader.sector === 'ابتدائي' ? 'selected' : ''}>أشبال وزهرات</option>
+                            <option value="اعدادي" ${leader.sector === 'اعدادي' ? 'selected' : ''}>مبتدئ ومرشدات</option>
+                            <option value="ثانوي" ${leader.sector === 'ثانوي' ? 'selected' : ''}>متقدم ورائدات</option>
+                            <option value="مرشح جوالة" ${leader.sector === 'مرشح جوالة' ? 'selected' : ''}>مرشح جوالة</option>
+                            <option value="عشيرة جوالة" ${leader.sector === 'عشيرة جوالة' ? 'selected' : ''}>عشيرة الجوالة</option>
                         </select>
                     </div>
                 </div>
@@ -214,6 +270,30 @@
             if (remaining === 0) {
                 document.getElementById('cardsContainer').innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-check"></i><p class="text-lg font-bold text-white mb-2">كله تمام!</p><p>مفيش قادة جدد مستنيين تفعيل.</p></div>`;
             }
+        }
+
+        // دوال مساعدة لعرض الأسماء بالعربي
+        function getRoleDisplayName(role) {
+            const roleNames = {
+                'TroopLeader': 'قائد فرقة',
+                'SectorLeader': 'قائد قطاع', 
+                'General': 'قائد عام',
+                'Master': 'ماستر',
+                'Viewer': 'عشيرة'
+            };
+            return roleNames[role] || role;
+        }
+
+        function getSectorDisplayName(sector) {
+            const sectorNames = {
+                'براعم': 'براعم',
+                'ابتدائي': 'أشبال وزهرات',
+                'اعدادي': 'مبتدئ ومرشدات',
+                'ثانوي': 'متقدم ورائدات',
+                'مرشح جوالة': 'مرشح جوالة',
+                'عشيرة جوالة': 'عشيرة الجوالة'
+            };
+            return sectorNames[sector] || sector;
         }
 
         loadRequests();

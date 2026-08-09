@@ -84,7 +84,7 @@
                     <select id="regRole" class="form-input" style="padding-right:1rem" onchange="toggleRoleFields()">
                         <option value="TroopLeader">قائد فرقة</option>
                         <option value="SectorLeader">قائد قطاع</option>
-                        <option value="Viewer">مشاهد</option>
+                        <option value="Viewer">عشيرة</option>
                     </select>
                 </div>
 
@@ -95,6 +95,8 @@
                         <option value="أشبال وزهرات">أشبال وزهرات</option>
                         <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
                         <option value="متقدم ورائدات">متقدم ورائدات</option>
+                        <option value="مرشح جوالة">مرشح جوالة</option>
+                        <option value="عشيرة الجوالة">عشيرة الجوالة</option>
                     </select>
                 </div>
 
@@ -102,9 +104,11 @@
                     <label class="form-label">القطاع</label>
                     <select id="regSector" class="form-input" style="padding-right:1rem">
                         <option value="براعم">براعم</option>
-                        <option value="ابتدائي">ابتدائي (أشبال وزهرات)</option>
-                        <option value="اعدادي">إعدادي (مبتدئ ومرشدات)</option>
-                        <option value="ثانوي">ثانوي (متقدم ورائدات)</option>
+                        <option value="ابتدائي">أشبال وزهرات</option>
+                        <option value="اعدادي">مبتدئ ومرشدات</option>
+                        <option value="ثانوي">متقدم ورائدات</option>
+                        <option value="مرشح جوالة">مرشح جوالة</option>
+                        <option value="عشيرة جوالة">عشيرة الجوالة</option>
                     </select>
                 </div>
 
@@ -156,6 +160,13 @@
                     </div>
                 </div>
 
+                <div id="unemployedFields" class="hidden">
+                    <div>
+                        <label class="form-label">المؤهل الدراسي (خريج إيه؟)</label>
+                        <input type="text" id="regUnemployedEducation" class="form-input" style="padding-right:1rem" placeholder="مثال: بكالوريوس تجارة">
+                    </div>
+                </div>
+
                 <div>
                     <label class="form-label">الخبرة الكشفية السابقة</label>
                     <textarea id="regScoutingExperience" class="form-input" style="padding-right:1rem; resize:vertical" rows="3" placeholder="مثال: خدمت في براعم لمدة سنتين، حاصل على شارة كذا..."></textarea>
@@ -190,6 +201,7 @@
             const status = document.getElementById('regEmploymentStatus').value;
             document.getElementById('studyFields').classList.toggle('hidden', status !== 'بيدرس');
             document.getElementById('workFields').classList.toggle('hidden', status !== 'شغال');
+            document.getElementById('unemployedFields').classList.toggle('hidden', status !== 'لا يعمل');
         }
 
         async function handleLogin(event) {
@@ -267,6 +279,8 @@
                 leaderData.job_title = document.getElementById('regJobTitle').value.trim() || null;
                 leaderData.workplace = document.getElementById('regWorkplace').value.trim() || null;
                 leaderData.education_level = document.getElementById('regEducationLevelWork').value.trim() || null;
+            } else if (employmentStatus === 'لا يعمل') {
+                leaderData.education_level = document.getElementById('regUnemployedEducation').value.trim() || null;
             }
 
             const { error } = await supabaseClient.from('leaders').insert([leaderData]);

@@ -144,7 +144,8 @@
                     'مرشدات': 'اعدادي',
                     'متقدم ورائدات': 'ثانوي',
                     'كشاف متقدم': 'ثانوي',
-                    'رائدات': 'ثانوي'
+                    'رائدات': 'ثانوي',
+                    'مرشح جوالة': 'مرشح جوالة'
                 };
                 return troopMap[currentUser.troop] || null;
             }
@@ -366,7 +367,8 @@
                 'براعم': ['براعم'],
                 'ابتدائي': ['أشبال وزهرات', 'أشبال', 'زهرات'],
                 'اعدادي': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'],
-                'ثانوي': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات']
+                'ثانوي': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات'],
+                'مرشح جوالة': ['مرشح جوالة']
             };
             const allowedTroops = sectorTroopMap[userSector] || [];
 
@@ -424,26 +426,35 @@
                 'براعم': 'براعم',
                 'أشبال وزهرات': 'ابتدائي', 'أشبال': 'ابتدائي', 'زهرات': 'ابتدائي',
                 'مبتدئ ومرشدات': 'اعدادي', 'كشاف مبتدئ': 'اعدادي', 'مرشدات': 'اعدادي',
-                'متقدم ورائدات': 'ثانوي', 'كشاف متقدم': 'ثانوي', 'رائدات': 'ثانوي'
+                'متقدم ورائدات': 'ثانوي', 'كشاف متقدم': 'ثانوي', 'رائدات': 'ثانوي',
+                'مرشح جوالة': 'مرشح جوالة',
+                'عشيرة الجوالة': 'عشيرة جوالة'
             };
             const stage = troopStageMap[troop];
 
             const { data: scouts, error } = await supabaseClient
                 .from('scouts')
-                .select('scout_id, full_name, personal_phone')
+                .select('scout_id, full_name, personal_phone, leader_sync_id')
                 .eq('school_stage', stage)
                 .eq('status', 'مقبول')
                 .order('full_name');
 
-            if (error || !scouts || scouts.length === 0) {
+            // خاص: فلترة عشيرة الجوالة للقادة المتزامنين فقط
+            let filteredScouts = scouts;
+            if (stage === 'عشيرة جوالة' && scouts) {
+                filteredScouts = scouts.filter(s => s.leader_sync_id !== null);
+                console.log('🏕️ عشيرة الجوالة: فلترة القادة المتزامنين فقط في follow_up');
+            }
+
+            if (error || !filteredScouts || filteredScouts.length === 0) {
                 list.innerHTML = '<div class="p-4 text-center text-gray-500">مفيش كشافين في الفرقة دي</div>';
                 availableScouts = [];
                 return;
             }
 
-            availableScouts = scouts;
+            availableScouts = filteredScouts;
             list.innerHTML = '';
-            scouts.forEach(s => {
+            filteredScouts.forEach(s => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-3 px-4 py-2 border-b border-[rgba(201,168,76,0.08)] last:border-0';
                 div.innerHTML = `

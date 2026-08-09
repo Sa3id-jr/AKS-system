@@ -56,6 +56,8 @@ function getScoutStage(schoolStage, gender) {
     else if (stage === 'ابتدائي') return 'أشبال وزهرات';
     else if (stage === 'اعدادي') return 'مبتدئ ومرشدات';
     else if (stage === 'ثانوي') return 'متقدم ورائدات';
+    else if (stage === 'مرشح جوالة') return 'مرشح جوالة';
+    else if (stage === 'عشيرة جوالة') return 'عشيرة الجوالة';
     else return 'مش محدد';
 }
 
@@ -86,6 +88,9 @@ function getDbSchoolStage(troopOrSector) {
         'أشبال وزهرات': 'ابتدائي', 'أشبال': 'ابتدائي', 'زهرات': 'ابتدائي',
         'مبتدئ ومرشدات': 'اعدادي', 'كشاف مبتدئ': 'اعدادي', 'مرشدات': 'اعدادي',
         'متقدم ورائدات': 'ثانوي', 'كشاف متقدم': 'ثانوي', 'رائدات': 'ثانوي',
+        'مرشح جوالة': 'مرشح جوالة',
+        'عشيرة الجوالة': 'عشيرة جوالة', // مع الـ 
+        'عشيرة جوالة': 'عشيرة جوالة',  // بدون الـ
         'ابتدائي': 'ابتدائي', 'اعدادي': 'اعدادي', 'ثانوي': 'ثانوي'
     };
     const result = map[unified] || map[raw] || null;
@@ -105,6 +110,8 @@ function getUnifiedGroupName(troopOrSector) {
     if (dbStage === 'ابتدائي') return 'أشبال وزهرات';
     if (dbStage === 'اعدادي') return 'مبتدئ ومرشدات';
     if (dbStage === 'ثانوي') return 'متقدم ورائدات';
+    if (dbStage === 'مرشح جوالة') return 'مرشح جوالة';
+    if (dbStage === 'عشيرة جوالة') return 'عشيرة الجوالة';
     return normalizeScoutGroup(troopOrSector) || troopOrSector;
 }
 
@@ -114,7 +121,9 @@ function getAllowedTroopNames(troopOrSector) {
         'براعم': ['براعم'],
         'أشبال وزهرات': ['أشبال وزهرات', 'أشبال', 'زهرات'],
         'مبتدئ ومرشدات': ['مبتدئ ومرشدات', 'كشاف مبتدئ', 'مرشدات'],
-        'متقدم ورائدات': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات']
+        'متقدم ورائدات': ['متقدم ورائدات', 'كشاف متقدم', 'رائدات'],
+        'مرشح جوالة': ['مرشح جوالة'],
+        'عشيرة الجوالة': ['عشيرة الجوالة']
     };
     return map[unified] || (troopOrSector ? [troopOrSector] : []);
 }
@@ -124,6 +133,17 @@ function applyRoleRestrictions() {
         const addBtn = document.getElementById('addScoutBtn'); 
         if (addBtn) addBtn.style.display = 'none';
     }
+    
+    // منع قادة عشيرة الجوالة من إضافة كشافين عاديين (القادة يتزامنوا تلقائياً)
+    if (currentUser.role === 'SectorLeader' && 
+        (currentUser.sector === 'عشيرة الجوالة' || currentUser.sector === 'عشيرة جوالة')) {
+        const addBtn = document.getElementById('addScoutBtn');
+        if (addBtn) {
+            addBtn.style.display = 'none';
+            console.log('🏕️ عشيرة الجوالة: منع إضافة كشافين عاديين - القادة يتزامنوا تلقائياً');
+        }
+    }
+    
     if (currentUser.role === 'TroopLeader' || currentUser.role === 'SectorLeader') {
         const tabBtns = document.querySelectorAll('.tab-btn');
         const allowedTabs = ['الكل'];
@@ -139,6 +159,12 @@ function applyRoleRestrictions() {
 }
 
 async function fetchScouts() {
+    // منع عشيرة من رؤية البيانات
+    if (currentUser.role === 'Viewer') {
+        console.warn('⚠️ عشيرة ليس لديه صلاحية لرؤية البيانات');
+        return [];
+    }
+    
     let query = supabaseClient.from('scouts').select('*').order('scout_id', { ascending: true });
     
     if (currentUser.role !== 'Master' && currentUser.role !== 'General') {
@@ -160,8 +186,17 @@ async function fetchScouts() {
         
         if (dbStage) {
             query = query.eq('school_stage', dbStage);
+            console.log('🎯 Applied school_stage filter:', dbStage);
+            
+            // خاص: قائد عشيرة الجوالة يشوف القادة المتزامنين فقط
+            if (dbStage === 'عشيرة جوالة') {
+                query = query.not('leader_sync_id', 'is', null);
+                console.log('🏕️ عشيرة الجوالة: فلترة القادة المتزامنين فقط');
+                console.log('🔍 Final query will show only scouts with leader_sync_id NOT NULL');
+            }
         } else {
             console.warn('⚠️ dbStage is null! Check getDbSchoolStage function');
+            console.log('🔍 Mapping debug - source:', source, 'raw:', String(source || '').trim());
         }
     }
 
@@ -236,7 +271,7 @@ function updateScoutCounts() {
     document.getElementById('count-الكل').innerHTML = `${totalCount} <span style="font-size: 0.65rem; opacity: 0.8;">(👦${boysTotal} 👧${girlsTotal})</span>`;
     
     // حساب عدد كل مرحلة
-    const stages = ['براعم', 'أشبال وزهرات', 'مبتدئ ومرشدات', 'متقدم ورائدات'];
+    const stages = ['براعم', 'أشبال وزهرات', 'مبتدئ ومرشدات', 'متقدم ورائدات', 'مرشح جوالة', 'عشيرة الجوالة'];
     stages.forEach(stage => {
         const stageScouts = allScouts.filter(scout => scout.scout_group === stage);
         const count = stageScouts.length;

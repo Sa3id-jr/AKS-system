@@ -139,6 +139,12 @@
                     <button class="tab-btn p-4 min-w-max" data-stage="متقدم ورائدات" onclick="filterData('متقدم ورائدات', this)">
                         متقدم ورائدات <span class="count-badge" id="count-متقدم ورائدات">0</span>
                     </button>
+                    <button class="tab-btn p-4 min-w-max" data-stage="مرشح جوالة" onclick="filterData('مرشح جوالة', this)">
+                        مرشح جوالة <span class="count-badge" id="count-مرشح جوالة">0</span>
+                    </button>
+                    <button class="tab-btn p-4 min-w-max" data-stage="عشيرة الجوالة" onclick="filterData('عشيرة الجوالة', this)">
+                        عشيرة الجوالة <span class="count-badge" id="count-عشيرة الجوالة">0</span>
+                    </button>
                 </div>
 
                 <div id="dataView" class="overflow-x-auto">
@@ -235,9 +241,11 @@
                                 <select id="formSchoolStage" class="form-input">
                                     <option value="">-- اختار --</option>
                                     <option value="براعم">براعم</option>
-                                    <option value="ابتدائي">ابتدائي</option>
-                                    <option value="اعدادي">اعدادي</option>
-                                    <option value="ثانوي">ثانوي</option>
+                                    <option value="ابتدائي">أشبال وزهرات</option>
+                                    <option value="اعدادي">مبتدئ ومرشدات</option>
+                                    <option value="ثانوي">متقدم ورائدات</option>
+                                    <option value="مرشح جوالة">مرشح جوالة</option>
+                                    <option value="عشيرة جوالة">عشيرة الجوالة</option>
                                 </select>
                             </div>
                             <div><label class="form-label">السنة الدراسية</label><input id="formSchoolYear" type="text" class="form-input" placeholder="مثال: تانية"></div>

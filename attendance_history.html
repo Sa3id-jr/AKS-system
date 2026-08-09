@@ -69,6 +69,8 @@
                         <option value="ابتدائي">ابتدائي</option>
                         <option value="اعدادي">اعدادي</option>
                         <option value="ثانوي">ثانوي</option>
+                        <option value="مرشح جوالة">مرشح جوالة</option>
+                        <option value="عشيرة جوالة">عشيرة الجوالة</option>
                     </select>
                 </div>
                 <div>
@@ -156,7 +158,10 @@
                     'براعم': 'براعم',
                     'ابتدائي': 'ابتدائي',
                     'اعدادي': 'اعدادي',
-                    'ثانوي': 'ثانوي'
+                    'ثانوي': 'ثانوي',
+                    'مرشح جوالة': 'مرشح جوالة',
+                    'عشيرة جوالة': 'عشيرة جوالة',
+                    'عشيرة الجوالة': 'عشيرة جوالة'  // إضافة النسخة مع الـ
                 };
                 return sectorMap[currentUser.sector] || null;
             } else if (currentUser.role === 'TroopLeader') {
@@ -170,7 +175,9 @@
                     'مرشدات': 'اعدادي',
                     'متقدم ورائدات': 'ثانوي',
                     'كشاف متقدم': 'ثانوي',
-                    'رائدات': 'ثانوي'
+                    'رائدات': 'ثانوي',
+                    'مرشح جوالة': 'مرشح جوالة',
+                    'عشيرة الجوالة': 'عشيرة جوالة'
                 };
                 return troopMap[currentUser.troop] || null;
             }
@@ -182,10 +189,16 @@
             tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> جاري التحميل...</td></tr>';
 
             // جيب كل الكشافين
-            let scoutsQuery = supabaseClient.from('scouts').select('scout_id, full_name, school_stage');
+            let scoutsQuery = supabaseClient.from('scouts').select('scout_id, full_name, school_stage, leader_sync_id');
             const userStage = getUserStage();
             if (userStage) {
                 scoutsQuery = scoutsQuery.eq('school_stage', userStage);
+                
+                // خاص: قائد عشيرة الجوالة يشوف القادة المتزامنين فقط
+                if (userStage === 'عشيرة جوالة') {
+                    scoutsQuery = scoutsQuery.not('leader_sync_id', 'is', null);
+                    console.log('🏕️ عشيرة الجوالة: فلترة القادة المتزامنين فقط في attendance_history');
+                }
             }
             const { data: scouts, error: scoutsError } = await scoutsQuery;
 
@@ -253,7 +266,9 @@
                     'براعم': 'براعم',
                     'ابتدائي': 'أشبال وزهرات',
                     'اعدادي': 'مبتدئ ومرشدات',
-                    'ثانوي': 'متقدم ورائدات'
+                    'ثانوي': 'متقدم ورائدات',
+                    'مرشح جوالة': 'مرشح جوالة',
+                    'عشيرة جوالة': 'عشيرة الجوالة'
                 };
 
                 const tr = document.createElement('tr');
