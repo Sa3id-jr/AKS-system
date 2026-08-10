@@ -239,9 +239,11 @@
             let query = supabaseClient.from('leaders').select('full_name, role, troop, sector, username').eq('status', 'نشط');
 
             if (user.role === 'Master') {
+                // ماستر يشوف كل القادة النشطين غير نفسه، بما فيهم الماستر و القائد العام إن وجدوا
                 query = query.neq('username', user.username);
             } else if (user.role === 'General') {
-                query = query.neq('username', user.username).neq('role', 'Master').neq('role', 'General');
+                // القائد العام يشوف كل القادة النشطين غير نفسه، بما فيهم الماستر والقائد العام إن وجدوا
+                query = query.neq('username', user.username);
             } else if (user.role === 'SectorLeader') {
                 query = query.neq('username', user.username).neq('role', 'Master').neq('role', 'General');
             } else if (user.role === 'TroopLeader') {
@@ -314,15 +316,18 @@
 
             const rolePriorityByViewer = {
                 'Master': {
-                    'General': 1,
-                    'SectorLeader': 2,
-                    'TroopLeader': 3,
-                    'Viewer': 4
+                    'Master': 1,
+                    'General': 2,
+                    'SectorLeader': 3,
+                    'TroopLeader': 4,
+                    'Viewer': 5
                 },
                 'General': {
-                    'SectorLeader': 1,
-                    'TroopLeader': 2,
-                    'Viewer': 3
+                    'Master': 1,
+                    'General': 2,
+                    'SectorLeader': 3,
+                    'TroopLeader': 4,
+                    'Viewer': 5
                 },
                 'SectorLeader': {
                     'SectorLeader': 1,
@@ -337,11 +342,11 @@
             };
 
             const rolePriority = rolePriorityByViewer[user.role] || {
-                'General': 1,
-                'SectorLeader': 2,
-                'TroopLeader': 3,
-                'Viewer': 4,
-                'Master': 5
+                'Master': 1,
+                'General': 2,
+                'SectorLeader': 3,
+                'TroopLeader': 4,
+                'Viewer': 5
             };
 
             filtered.sort((a, b) => {
@@ -366,7 +371,7 @@
             };
              
             leadersDiv.innerHTML = filtered.map(l => {
-                const featured = l.role === 'General' || l.role === 'SectorLeader';
+                const featured = ['Master', 'General', 'SectorLeader'].includes(l.role);
                 const featuredClass = featured ? 'featured-leader' : '';
 
                 return `<div class="leader-card bg-[var(--dark3)] border border-[var(--border)] rounded-xl p-3 flex items-center gap-3 ${featuredClass}">
