@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التوثيق - AKS Ava Kirolos Scout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --gold: #c9a84c; --gold-lt: #e8d5a3; --silver: #c0c0c0; --dark: #0d0d0d; --dark2: #1a1a1a; --dark3: #242424; --border: rgba(201,168,76,0.25); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--dark); color: var(--silver); min-height: 100vh; }
+        nav { background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%); border-bottom: 1px solid var(--border); }
+        .doc-shell { max-width: 1180px; margin: 0 auto; padding: 32px 20px 90px; }
+        .panel { background: var(--dark2); border: 1px solid var(--border); border-radius: 16px; padding: 22px; margin-bottom: 20px; }
+        h1, h2, h3 { color: #fff; }
+        h1 { font-size: 2rem; font-weight: 900; margin-bottom: 12px; }
+        h2 { font-size: 1.25rem; margin-bottom: 12px; border-right: 4px solid var(--gold); padding-right: 10px; }
+        h3 { font-size: 1rem; margin-bottom: 8px; }
+        p, li { color: var(--silver); line-height: 1.9; font-size: 0.92rem; }
+        ul { padding-right: 24px; }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: rgba(201,168,76,0.12); color: var(--gold); font-size: 0.75rem; font-weight: 700; margin-left: 6px; }
+        .role-block { border: 1px solid var(--border); background: var(--dark3); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+        .toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .toc a { display: block; padding: 12px; border-radius: 10px; background: var(--dark3); border: 1px solid rgba(201,168,76,0.22); color: var(--gold); text-decoration: none; font-weight: 700; }
+        .toc a:hover { border-color: var(--gold); color: white; }
+    </style>
+</head>
+<body>
+    <nav class="p-4 sticky top-0 z-10 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <img src="https://xbdprjxvtwfieiqncbez.supabase.co/storage/v1/object/public/Logo/Gemini_Generated_Image_.png" class="w-12 h-12 object-contain rounded-full border border-[var(--gold)]">
+            <div>
+                <p class="text-xs font-bold tracking-widest" style="color: var(--gold)">AVA KIROLOS</p>
+                <p class="text-xs text-gray-400">AKS Scout Management</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="window.location.href='home.html'" class="text-[var(--gold)] hover:text-[var(--gold-lt)] font-bold text-sm flex items-center gap-2 transition">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </button>
+            <button onclick="window.location.href='index.html'" class="text-red-500 hover:text-red-400 font-bold text-sm flex items-center gap-2 transition">
+                <i class="fa-solid fa-power-off"></i> تسجيل خروج
+            </button>
+        </div>
+    </nav>
+
+    <div class="doc-shell">
+        <section class="panel">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1>AKS Ava Kirolos Scout Documentation</h1>
+                    <p class="text-sm text-gray-400">Project guide, navigation map, and access control</p>
+                </div>
+                <span class="badge">Version 1.0</span>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Project Overview</h2>
+            <p>
+                This project is the Ava Kirolos Scout Group website. It is a scouting administration system used to manage scouts, leader accounts, patrols, attendance, follow-up tasks, records, requests, and reporting.
+            </p>
+            <p>
+                The system is built with static web pages that communicate with Supabase as the backend database service. User authentication, authorization, search, editing, filtering, charts, PDF/Excel exports, and the database operations are handled by front-end JavaScript code and Supabase queries.
+            </p>
+        </section>
+
+        <section class="panel">
+            <h2>Page Map</h2>
+            <div class="toc">
+                <a href="index.html">Login Page</a>
+                <a href="home.html">Home Dashboard</a>
+                <a href="dashboard.html">Scout Database</a>
+                <a href="form.html">Add/Edit Scout</a>
+                <a href="follow_up.html">Follow-Up</a>
+                <a href="attendance_history.html">Attendance History</a>
+                <a href="attendance_session.html">Attendance Session</a>
+                <a href="fast_attendance.html">Fast Attendance</a>
+                <a href="benchmark.html">Benchmark</a>
+                <a href="patrols.html">Patrols</a>
+                <a href="leaders.html">Leaders</a>
+                <a href="leader_requests.html">Leader Requests</a>
+                <a href="requests.html">Scout Requests</a>
+                <a href="sector_requests.html">Sector Requests</a>
+                <a href="my_profile.html">My Profile</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Navigation Roles</h2>
+            <div class="role-block">
+                <h3>Master</h3>
+                <p>Has access to all pages and all records. Can approve leader requests, approve scout requests, manage leaders, view all sectors, and operate the highest-level administrative workflow.</p>
+            </div>
+            <div class="role-block">
+                <h3>General</h3>
+                <p>Has broad operational access across the whole group. Can open management dashboards, approve leader and scout requests, and manage organization-wide actions.</p>
+            </div>
+            <div class="role-block">
+                <h3>SectorLeader</h3>
+                <p>Can see the sector/stage assigned to them. This role can manage scout and patrol related actions in their sector and review sector-level requests.</p>
+            </div>
+            <div class="role-block">
+                <h3>TroopLeader</h3>
+                <p>Can see scouts and patrol operations within the assigned troop. Can create or manage follow-up tasks and send edit requests for approval instead of applying direct edits.</p>
+            </div>
+            <div class="role-block">
+                <h3>Viewer</h3>
+                <p>Limited login visibility. The system logs them in but restricts data access for normal scout operations.</p>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Role Access Matrix</h2>
+            <table class="w-full text-sm text-right border-collapse">
+                <thead>
+                    <tr class="border-b border-[var(--border)]">
+                        <th class="p-3 text-[var(--gold)]">Page / Area</th>
+                        <th class="p-3 text-[var(--gold)]">Master</th>
+                        <th class="p-3 text-[var(--gold)]">General</th>
+                        <th class="p-3 text-[var(--gold)]">SectorLeader</th>
+                        <th class="p-3 text-[var(--gold)]">TroopLeader</th>
+                        <th class="p-3 text-[var(--gold)]">Viewer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-[rgba(255,255,255,0.08)]">
+                        <td class="p-3">Scout Database</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Sector</td>
+                        <td class="p-3">Troop</td>
+                        <td class="p-3">No</td>
+                    </tr>
+                    <tr class="border-b border-[rgba(255,255,255,0.08)]">
+                        <td class="p-3">Add Scout</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">No direct</td>
+                        <td class="p-3">No</td>
+                    </tr>
+                    <tr class="border-b border-[rgba(255,255,255,0.08)]">
+                        <td class="p-3">Requests</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Review sector</td>
+                        <td class="p-3">Request</td>
+                        <td class="p-3">No</td>
+                    </tr>
+                    <tr class="border-b border-[rgba(255,255,255,0.08)]">
+                        <td class="p-3">Leader Management</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">No</td>
+                        <td class="p-3">No</td>
+                        <td class="p-3">No</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3">Follow-up Tasks</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Yes</td>
+                        <td class="p-3">Assigned only</td>
+                        <td class="p-3">No</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="panel">
+            <h2>Core Data Tables</h2>
+            <ul>
+                <li><strong>leaders:</strong> login accounts and role definitions.</li>
+                <li><strong>scouts:</strong> scout profile and registration data.</li>
+                <li><strong>attendance:</strong> attendance and scoring records.</li>
+                <li><strong>patrols:</strong> patrol names and relation to troop/sector.</li>
+                <li><strong>scout_requests:</strong> requested scout edit/delete activities.</li>
+                <li><strong>follow_up_tasks:</strong> follow-up tasks with assigned leader IDs/names.</li>
+            </ul>
+        </section>
+
+        <section class="panel">
+            <h2>How to Use The Website</h2>
+            <ol>
+                <li>Open the login page at <code>index.html</code>.</li>
+                <li>Log in with the leader username and password from the `leaders` table.</li>
+                <li>After successful authentication the session is saved in local storage.</li>
+                <li>Use the home page cards to navigate to the relevant system areas.</li>
+                <li>Use the `dashboard.html` page to search, filter, review, and manage scout records.</li>
+                <li>Higher-level roles approve pending requests when they are created by lower-level users.</li>
+            </ol>
+        </section>
+
+        <section class="panel">
+            <h2>Security / Production Notes</h2>
+            <p>
+                The current implementation stores a signed-in leader session in the browser using `localStorage` and runs most database operations through front-end Supabase calls. For a production system the next step should be to move write operations behind a secure API and enforce Supabase Row Level Security policies.
+            </p>
+        </section>
+    </div>
+</body>
+</html>
