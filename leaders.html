@@ -166,7 +166,21 @@
             return { ok: true, message: '' };
         }
 
-        async function usernameExists(username, ignoreId = null) {
+function validateArabicFullNameValue(name) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return { ok: false, message: 'الاسم الكامل مطلوب.' };
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length < 3) {
+        return { ok: false, message: 'الاسم الكامل لازم يكون 3 كلمات على الأقل بالعربي.' };
+    }
+    const arabicFullNameRegex = /^[\u0600-\u06FF\s]+$/;
+    if (!arabicFullNameRegex.test(trimmed)) {
+        return { ok: false, message: 'الاسم الكامل لازم يكون باللغة العربية فقط.' };
+    }
+    return { ok: true, message: '' };
+}
+
+async function usernameExists(username, ignoreId = null) {
             const normalizedUsername = String(username || '').trim();
             if (!normalizedUsername) return false;
 
@@ -378,9 +392,24 @@
         async function deleteLeader(id, username) {
             if (username === 'admin') { alert('لا يمكن حذف حساب الماستر الأساسي!'); return; }
             if (confirm(`متأكد إنك عايز تحذف القائد ${username} نهائياً؟`)) {
-                const { error } = await supabaseClient.from('leaders').delete().eq('id', id);
-                if (error) alert('فشل الحذف: ' + error.message);
-                else { alert('تم حذف القائد بنجاح'); loadLeaders(); }
+                try {
+                    const { error: scoutDeleteError } = await supabaseClient
+                        .from('scouts')
+                        .delete()
+                        .eq('leader_sync_id', id);
+
+                    if (scoutDeleteError) {
+                        throw scoutDeleteError;
+                    }
+
+                    const { error } = await supabaseClient.from('leaders').delete().eq('id', id);
+                    if (error) throw error;
+
+                    alert('تم حذف القائد بنجاح');
+                    loadLeaders();
+                } catch (error) {
+                    alert('فشل الحذف: ' + (error && error.message ? error.message : error));
+                }
             }
         }
 

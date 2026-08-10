@@ -64,6 +64,7 @@
                 <div>
                     <label class="form-label">الاسم بالكامل *</label>
                     <input type="text" id="regName" class="form-input" style="padding-right:1rem" required>
+                    <div id="regNameError" class="hidden text-xs text-red-300 mt-1"></div>
                 </div>
                 <div>
                     <label class="form-label">رقم الموبايل *</label>
@@ -72,6 +73,7 @@
                 <div>
                     <label class="form-label">اسم المستخدم (Username) *</label>
                     <input type="text" id="regUser" class="form-input" style="padding-right:1rem" required>
+                    <div id="regUserError" class="hidden text-xs text-red-300 mt-1"></div>
                 </div>
                 <div class="relative">
                     <label class="form-label">كلمة المرور *</label>
@@ -207,6 +209,10 @@
         function validateArabicFullName(fullName) {
             const trimmed = String(fullName || '').trim();
             if (!trimmed) return { ok: false, message: 'الاسم الكامل مطلوب.' };
+            const words = trimmed.split(/\s+/).filter(Boolean);
+            if (words.length < 3) {
+                return { ok: false, message: 'الاسم الكامل لازم يكون 3 كلمات على الأقل بالعربي.' };
+            }
             const arabicRegex = /^[\u0600-\u06FF\s]+$/;
             if (!arabicRegex.test(trimmed)) {
                 return { ok: false, message: 'الاسم الكامل لازم يكون بالعربي فقط.' };
@@ -300,8 +306,14 @@
             const fullName = document.getElementById('regName').value.trim();
             const username = document.getElementById('regUser').value.trim();
 
+            const regNameError = document.getElementById('regNameError');
+            const regUserError = document.getElementById('regUserError');
+            regNameError.classList.add('hidden'); regUserError.classList.add('hidden');
+
             const fullNameValidation = validateArabicFullName(fullName);
             if (!fullNameValidation.ok) {
+                regNameError.textContent = fullNameValidation.message;
+                regNameError.classList.remove('hidden');
                 alert(fullNameValidation.message);
                 btn.disabled = false; btn.textContent = 'تسجيل الحساب';
                 return;
@@ -309,6 +321,8 @@
 
             const userValidation = validateArabicUsername(username);
             if (!userValidation.ok) {
+                regUserError.textContent = userValidation.message;
+                regUserError.classList.remove('hidden');
                 alert(userValidation.message);
                 btn.disabled = false; btn.textContent = 'تسجيل الحساب';
                 return;
@@ -316,6 +330,8 @@
 
             const duplicate = await usernameExists(username);
             if (duplicate) {
+                regUserError.textContent = 'اسم المستخدم ده محجوز، اختار اسم مستخدم مختلف.';
+                regUserError.classList.remove('hidden');
                 alert('اسم المستخدم ده محجوز، اختار اسم مستخدم مختلف.');
                 btn.disabled = false; btn.textContent = 'تسجيل الحساب';
                 return;
