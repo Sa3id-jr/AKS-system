@@ -22,3 +22,10 @@ COMMENT ON COLUMN public.leaders.university IS 'الجامعة (للطلاب)';
 COMMENT ON COLUMN public.leaders.faculty IS 'الكلية (للطلاب)';
 COMMENT ON COLUMN public.leaders.academic_year IS 'السنة الدراسية (للطلاب)';
 COMMENT ON COLUMN public.leaders.scouting_experience IS 'الخبرة الكشفية السابقة';
+
+-- ضمان عدم تكرار أسماء المستخدمين في جدول القادة
+CREATE UNIQUE INDEX IF NOT EXISTS leaders_username_unique_idx
+ON public.leaders (username);
+
+-- إذا كان هناك اسم مستخدم تكرر حالياً، لازم يتم تنظيفه فوراً قبل تطبيق الفهرس
+-- (النسخة النهائية تحتاج إعادة تسمية أو حذف السجلات المكررة يدويًا في قاعدة البيانات).
