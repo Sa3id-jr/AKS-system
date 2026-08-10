@@ -241,7 +241,7 @@
             if (user.role === 'Master') {
                 query = query.neq('username', user.username);
             } else if (user.role === 'General') {
-                query = query.neq('username', user.username).neq('role', 'Master');
+                query = query.neq('username', user.username).neq('role', 'Master').neq('role', 'General');
             } else if (user.role === 'SectorLeader') {
                 query = query.neq('username', user.username).neq('role', 'Master').neq('role', 'General');
             } else if (user.role === 'TroopLeader') {
@@ -312,12 +312,36 @@
 
             console.log('✅ Filtered leaders:', filtered);
 
-            const rolePriority = {
+            const rolePriorityByViewer = {
+                'Master': {
+                    'General': 1,
+                    'SectorLeader': 2,
+                    'TroopLeader': 3,
+                    'Viewer': 4
+                },
+                'General': {
+                    'SectorLeader': 1,
+                    'TroopLeader': 2,
+                    'Viewer': 3
+                },
+                'SectorLeader': {
+                    'SectorLeader': 1,
+                    'TroopLeader': 2,
+                    'Viewer': 3
+                },
+                'TroopLeader': {
+                    'SectorLeader': 1,
+                    'TroopLeader': 2,
+                    'Viewer': 3
+                }
+            };
+
+            const rolePriority = rolePriorityByViewer[user.role] || {
                 'General': 1,
                 'SectorLeader': 2,
                 'TroopLeader': 3,
-                'Master': 4,
-                'Viewer': 5
+                'Viewer': 4,
+                'Master': 5
             };
 
             filtered.sort((a, b) => {
