@@ -28,6 +28,11 @@
         .role-general { background: rgba(100,149,237,0.2); color: #6495ed; border: 1px solid rgba(100,149,237,0.4); }
         .role-sector { background: rgba(60,179,113,0.2); color: #3cb371; border: 1px solid rgba(60,179,113,0.4); }
         .role-troop { background: rgba(192,192,192,0.15); color: #c0c0c0; border: 1px solid rgba(192,192,192,0.3); }
+
+        .leader-card { transition: all 0.2s ease; }
+        .leader-card.featured-leader { border-color: var(--gold); background: linear-gradient(135deg, rgba(201,168,76,0.16), var(--dark3)); box-shadow: inset 0 0 0 1px rgba(201,168,76,0.35); }
+        .leader-card.featured-leader .leader-avatar { color: var(--gold); border-color: var(--gold); background: rgba(201,168,76,0.2); }
+        .leader-card.featured-leader .leader-role { color: var(--gold-lt); }
     </style>
 </head>
 <body>
@@ -307,6 +312,20 @@
 
             console.log('✅ Filtered leaders:', filtered);
 
+            const rolePriority = {
+                'General': 1,
+                'SectorLeader': 2,
+                'TroopLeader': 3,
+                'Master': 4,
+                'Viewer': 5
+            };
+
+            filtered.sort((a, b) => {
+                const roleDiff = (rolePriority[a.role] || 99) - (rolePriority[b.role] || 99);
+                if (roleDiff !== 0) return roleDiff;
+                return (a.full_name || '').localeCompare(b.full_name || '', 'ar');
+            });
+
             document.getElementById('leadersCount').textContent = filtered.length;
 
             if (filtered.length === 0) {
@@ -321,19 +340,22 @@
                 'مبتدئ ومرشدات': 'مبتدئ ومرشدات',
                 'متقدم ورائدات': 'متقدم ورائدات'
             };
-            
-            leadersDiv.innerHTML = filtered.map(l => `
-                <div class="bg-[var(--dark3)] border border-[var(--border)] rounded-xl p-3 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-[rgba(201,168,76,0.15)] flex items-center justify-center text-[var(--gold)]">
+             
+            leadersDiv.innerHTML = filtered.map(l => {
+                const featured = l.role === 'General' || l.role === 'SectorLeader';
+                const featuredClass = featured ? 'featured-leader' : '';
+
+                return `<div class="leader-card bg-[var(--dark3)] border border-[var(--border)] rounded-xl p-3 flex items-center gap-3 ${featuredClass}">
+                    <div class="leader-avatar w-10 h-10 rounded-full bg-[rgba(201,168,76,0.15)] flex items-center justify-center text-[var(--gold)] border border-[rgba(201,168,76,0.2)]">
                         <i class="fa-solid fa-user-tie"></i>
                     </div>
                     <div class="flex-1">
                         <p class="text-white font-bold text-sm">${l.full_name}</p>
-                        <p class="text-xs text-gray-400">${roleNamesAr[l.role] || l.role}</p>
+                        <p class="leader-role text-xs text-gray-400">${roleNamesAr[l.role] || l.role}</p>
                         <p class="text-xs text-[var(--gold)] mt-0.5">${l.role === 'SectorLeader' ? (sectorNamesDisplay[l.sector] || l.sector || '—') : (l.troop || '—')}</p>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         // ===== Badges =====
