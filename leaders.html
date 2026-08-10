@@ -150,15 +150,56 @@
         const currentUser = JSON.parse(localStorage.getItem('scout_leader_session') || 'null');
         if (!currentUser || (currentUser.role !== 'Master' && currentUser.role !== 'General')) window.location.href = 'home.html';
 
+        let leadersCache = [];
+
+        function validateArabicFullName(username) {
+            const trimmed = String(username || '').trim();
+            if (!trimmed) return { ok: false, message: 'اسم المستخدم مطلوب.' };
+            const words = trimmed.split(/\s+/).filter(Boolean);
+            if (words.length < 3) {
+                return { ok: false, message: 'اسم المستخدم لازم يكون اسم كامل ثلاثي أو أكثر بالعربي.' };
+            }
+            const arabicFullNameRegex = /^[\u0600-\u06FF\s]+$/;
+            if (!arabicFullNameRegex.test(trimmed)) {
+                return { ok: false, message: 'اسم المستخدم لازم يكون باللغة العربية فقط.' };
+            }
+            return { ok: true, message: '' };
+        }
+
+        async function usernameExists(username, ignoreId = null) {
+            const normalizedUsername = String(username || '').trim();
+            if (!normalizedUsername) return false;
+
+            const { data, error } = await supabaseClient
+                .from('leaders')
+                .select('id, username')
+                .eq('username', normalizedUsername);
+
+            if (error) {
+                console.error('Username lookup failed:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) return false;
+
+            if (ignoreId) {
+                return data.some(row => String(row.id) !== String(ignoreId));
+            }
+
+            return true;
+        }
+
         async function loadLeaders() {
             const { data, error } = await supabaseClient.from('leaders').select('*').order('created_at', { ascending: true });
             const tbody = document.getElementById('leadersTableBody');
             tbody.innerHTML = '';
-            
+             
             if (error) { 
                 tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">فشل التحميل.${error.message}</td></tr>`; 
                 return; 
             }
+
+            leadersCache = data || [];
 
             if (!data || data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">مفيش قادة متسجلين.</td></tr>`;
@@ -175,7 +216,7 @@
                     actionsHtml = `<span class="text-xs text-gray-600">محمي</span>`;
                 } else {
                     actionsHtml = `
-                        <button onclick="openEditLeaderModal('${leader.id}', '${leader.full_name}', '${leader.username}', '${leader.password}', '${leader.role}', '${leader.troop || ''}', '${leader.sector || ''}', '${leader.phone || ''}', '${leader.employment_status || ''}', '${leader.education_level || ''}', '${leader.university || ''}', '${leader.faculty || ''}', '${leader.academic_year || ''}', '${leader.job_title || ''}', '${leader.workplace || ''}', '${(leader.scouting_experience || '').replace(/'/g, "\\'")}' )" class="text-blue-400 hover:text-blue-300 ml-3">
+                        <button data-leader-id="${leader.id}" class="edit-leader-btn text-blue-400 hover:text-blue-300 ml-3">
                             <i class="fa-solid fa-user-gear"></i>
                         </button>
                         <button onclick="deleteLeader('${leader.id}', '${leader.username}')" class="text-red-500 hover:text-red-400">
@@ -194,6 +235,12 @@
                     <td class="p-4 text-center">${actionsHtml}</td>
                 `;
                 tbody.appendChild(tr);
+            });
+
+            tbody.querySelectorAll('[data-leader-id]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    openEditLeaderModal(btn.getAttribute('data-leader-id'));
+                });
             });
         }
 
@@ -219,27 +266,33 @@
             document.getElementById('leaderModal').classList.remove('hidden');
         }
 
-        function openEditLeaderModal(id, name, username, password, role, troop, sector, phone, employmentStatus, educationLevel, university, faculty, academicYear, jobTitle, workplace, scoutingExperience) {
-            document.getElementById('leaderId').value = id;
-            document.getElementById('leaderName').value = name;
-            document.getElementById('leaderUsername').value = username;
+        function openEditLeaderModal(id) {
+            const leader = leadersCache.find(row => String(row.id) === String(id));
+            if (!leader) {
+                alert('لم يتم العثور على بيانات هذا القائد.');
+                return;
+            }
+
+            document.getElementById('leaderId').value = leader.id;
+            document.getElementById('leaderName').value = leader.full_name || '';
+            document.getElementById('leaderUsername').value = leader.username || '';
             document.getElementById('leaderUsername').disabled = true;
-            document.getElementById('leaderPassword').value = password;
-            document.getElementById('leaderRole').value = role;
-            document.getElementById('leaderPhone').value = phone || '';
+            document.getElementById('leaderPassword').value = leader.password || '';
+            document.getElementById('leaderRole').value = leader.role || 'TroopLeader';
+            document.getElementById('leaderPhone').value = leader.phone || '';
             
-            document.getElementById('leaderTroop').value = troop || 'أشبال وزهرات';
-            document.getElementById('leaderSector').value = sector || 'ابتدائي';
+            document.getElementById('leaderTroop').value = leader.troop || 'أشبال وزهرات';
+            document.getElementById('leaderSector').value = leader.sector || 'ابتدائي';
             
             // تحميل البيانات الجديدة
-            document.getElementById('leaderEmploymentStatus').value = employmentStatus || '';
-            document.getElementById('leaderEducationLevel').value = educationLevel || '';
-            document.getElementById('leaderUniversity').value = university || '';
-            document.getElementById('leaderFaculty').value = faculty || '';
-            document.getElementById('leaderAcademicYear').value = academicYear || '';
-            document.getElementById('leaderJobTitle').value = jobTitle || '';
-            document.getElementById('leaderWorkplace').value = workplace || '';
-            document.getElementById('leaderScoutingExperience').value = scoutingExperience || '';
+            document.getElementById('leaderEmploymentStatus').value = leader.employment_status || '';
+            document.getElementById('leaderEducationLevel').value = leader.education_level || '';
+            document.getElementById('leaderUniversity').value = leader.university || '';
+            document.getElementById('leaderFaculty').value = leader.faculty || '';
+            document.getElementById('leaderAcademicYear').value = leader.academic_year || '';
+            document.getElementById('leaderJobTitle').value = leader.job_title || '';
+            document.getElementById('leaderWorkplace').value = leader.workplace || '';
+            document.getElementById('leaderScoutingExperience').value = leader.scouting_experience || '';
             
             toggleTroopField();
             toggleLeaderEmploymentFields();
@@ -253,6 +306,25 @@
             e.preventDefault();
             const id = document.getElementById('leaderId').value;
             const role = document.getElementById('leaderRole').value;
+            const leaderName = document.getElementById('leaderName').value.trim();
+            const username = document.getElementById('leaderUsername').value.trim();
+
+            const usernameValidation = validateArabicFullName(username);
+            if (!usernameValidation.ok) {
+                alert(usernameValidation.message);
+                return;
+            }
+
+            if (!leaderName || leaderName.split(/\s+/).length < 2) {
+                alert('الاسم الكامل لازم يكون اسم كامل بالعربي (اسمين/ثلاثة على الأقل).');
+                return;
+            }
+
+            const duplicate = await usernameExists(username, id || null);
+            if (duplicate) {
+                alert('اسم المستخدم ده موجود بالفعل، اختار اسم مستخدم مختلف.');
+                return;
+            }
             
             let troop = null, sector = null;
             if (role === 'TroopLeader') troop = document.getElementById('leaderTroop').value;
@@ -262,8 +334,8 @@
             const employmentStatus = document.getElementById('leaderEmploymentStatus').value || null;
 
             const leaderData = {
-                full_name: document.getElementById('leaderName').value.trim(),
-                username: document.getElementById('leaderUsername').value.trim(),
+                full_name: leaderName,
+                username: username,
                 password: document.getElementById('leaderPassword').value.trim(),
                 role: role,
                 troop: troop,
@@ -287,16 +359,19 @@
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true; saveBtn.textContent = 'جاري الحفظ...';
 
-            if (id) {
-                const { error } = await supabaseClient.from('leaders').update(leaderData).eq('id', id);
-                if (error) alert('خطأ: ' + error.message);
-            } else {
-                leaderData.status = 'نشط';
-                const { error } = await supabaseClient.from('leaders').insert([leaderData]);
-                if (error) alert(error.code === '23505' ? 'اليوزر ده محجوز!' : 'خطأ: ' + error.message);
+            try {
+                if (id) {
+                    const { error } = await supabaseClient.from('leaders').update(leaderData).eq('id', id);
+                    if (error) alert('خطأ: ' + error.message);
+                } else {
+                    leaderData.status = 'نشط';
+                    const { error } = await supabaseClient.from('leaders').insert([leaderData]);
+                    if (error) alert(error.code === '23505' ? 'اليوزر ده محجوز!' : 'خطأ: ' + error.message);
+                }
+            } finally {
+                saveBtn.disabled = false; saveBtn.textContent = 'حفظ البيانات';
             }
 
-            saveBtn.disabled = false; saveBtn.textContent = 'حفظ البيانات';
             closeModal(); loadLeaders();
         }
 

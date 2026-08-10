@@ -230,18 +230,24 @@
 
             try {
                 if (canManageDirect) {
+                    const { error: attendanceClearError } = await supabaseClient
+                        .from('attendance')
+                        .delete()
+                        .eq('patrol_id', patrol.id);
+                    if (attendanceClearError) throw attendanceClearError;
+
                     const { error: clearError } = await supabaseClient
                         .from('scouts')
                         .update({ patrol_id: null })
                         .eq('patrol_id', patrol.id);
                     if (clearError) throw clearError;
-
+ 
                     const { error: delError } = await supabaseClient
                         .from('patrols')
                         .delete()
                         .eq('id', patrol.id);
                     if (delError) throw delError;
-
+ 
                     alert('تم حذف الطليعة بنجاح');
                 } else {
                     const reqData = {

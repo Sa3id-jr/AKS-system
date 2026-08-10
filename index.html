@@ -204,6 +204,51 @@
             document.getElementById('unemployedFields').classList.toggle('hidden', status !== 'لا يعمل');
         }
 
+        function validateArabicFullName(fullName) {
+            const trimmed = String(fullName || '').trim();
+            if (!trimmed) return { ok: false, message: 'الاسم الكامل مطلوب.' };
+            const arabicRegex = /^[\u0600-\u06FF\s]+$/;
+            if (!arabicRegex.test(trimmed)) {
+                return { ok: false, message: 'الاسم الكامل لازم يكون بالعربي فقط.' };
+            }
+            return { ok: true, message: '' };
+        }
+
+        function validateArabicUsername(username) {
+            const trimmed = String(username || '').trim();
+            if (!trimmed) return { ok: false, message: 'اسم المستخدم مطلوب.' };
+            const words = trimmed.split(/\s+/).filter(Boolean);
+            if (words.length < 3) {
+                return { ok: false, message: 'اسم المستخدم لازم يكون اسم كامل ثلاثي أو أكثر بالعربي.' };
+            }
+            const arabicRegex = /^[\u0600-\u06FF\s]+$/;
+            if (!arabicRegex.test(trimmed)) {
+                return { ok: false, message: 'اسم المستخدم لازم يكون بالعربي فقط.' };
+            }
+            return { ok: true, message: '' };
+        }
+
+        async function usernameExists(username, ignoreId = null) {
+            const normalizedUsername = String(username || '').trim();
+            if (!normalizedUsername) return false;
+
+            const { data, error } = await supabaseClient
+                .from('leaders')
+                .select('id, username')
+                .eq('username', normalizedUsername);
+
+            if (error) {
+                console.error('Username lookup failed:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) return false;
+            if (ignoreId) {
+                return data.some(row => String(row.id) !== String(ignoreId));
+            }
+            return true;
+        }
+
         async function handleLogin(event) {
             event.preventDefault();
             const btn = document.getElementById('loginBtn');
@@ -252,14 +297,38 @@
             btn.disabled = true; btn.textContent = 'جاري التسجيل...';
 
             const requestedRole = document.getElementById('regRole').value;
+            const fullName = document.getElementById('regName').value.trim();
+            const username = document.getElementById('regUser').value.trim();
+
+            const fullNameValidation = validateArabicFullName(fullName);
+            if (!fullNameValidation.ok) {
+                alert(fullNameValidation.message);
+                btn.disabled = false; btn.textContent = 'تسجيل الحساب';
+                return;
+            }
+
+            const userValidation = validateArabicUsername(username);
+            if (!userValidation.ok) {
+                alert(userValidation.message);
+                btn.disabled = false; btn.textContent = 'تسجيل الحساب';
+                return;
+            }
+
+            const duplicate = await usernameExists(username);
+            if (duplicate) {
+                alert('اسم المستخدم ده محجوز، اختار اسم مستخدم مختلف.');
+                btn.disabled = false; btn.textContent = 'تسجيل الحساب';
+                return;
+            }
+
             const troop = requestedRole === 'TroopLeader' ? document.getElementById('regTroop').value : 'غير محدد';
             const sector = requestedRole === 'SectorLeader' ? document.getElementById('regSector').value : null;
             const employmentStatus = document.getElementById('regEmploymentStatus').value;
 
             const leaderData = {
-                full_name: document.getElementById('regName').value.trim(),
+                full_name: fullName,
                 phone: document.getElementById('regPhone').value.trim(),
-                username: document.getElementById('regUser').value.trim(),
+                username: username,
                 password: document.getElementById('regPass').value.trim(),
                 role: requestedRole,        
                 troop: troop,
