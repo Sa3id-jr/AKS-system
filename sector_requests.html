@@ -220,6 +220,12 @@
                 } else if (req.type === 'delete') {
                     if (!patrolId) throw new Error('طلب الحذف بدون رقم طليعة');
 
+                    const { error: attendanceClearError } = await supabaseClient
+                        .from('attendance')
+                        .delete()
+                        .eq('patrol_id', patrolId);
+                    if (attendanceClearError) throw attendanceClearError;
+                    
                     const { error: clearError } = await supabaseClient
                         .from('scouts')
                         .update({ patrol_id: null })

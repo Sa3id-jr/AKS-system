@@ -28,6 +28,10 @@
         .role-general { background: rgba(100,149,237,0.2); color: #6495ed; border: 1px solid rgba(100,149,237,0.4); }
         .role-sector { background: rgba(60,179,113,0.2); color: #3cb371; border: 1px solid rgba(60,179,113,0.4); }
         .role-troop { background: rgba(192,192,192,0.15); color: #c0c0c0; border: 1px solid rgba(192,192,192,0.3); }
+        .leader-card { transition: all 0.2s ease; }
+        .leader-card.featured-leader { border-color: var(--gold); background: linear-gradient(135deg, rgba(201,168,76,0.16), var(--dark3)); box-shadow: inset 0 0 0 1px rgba(201,168,76,0.35); }
+        .leader-card.featured-leader .leader-avatar { color: var(--gold); border-color: var(--gold); background: rgba(201,168,76,0.2); }
+        .leader-card.featured-leader .leader-role { color: var(--gold-lt); }
     </style>
 </head>
 <body>
@@ -41,6 +45,9 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
+             <button onclick="window.location.href='documentation.html'" class="text-[var(--gold)] hover:text-[var(--gold-lt)] font-bold text-sm flex items-center gap-2 transition">
+                <i class="fa-solid fa-book"></i> التوثيق
+            </button>
             <button onclick="window.location.href='my_profile.html'" class="text-[var(--gold)] hover:text-[var(--gold-lt)] font-bold text-sm flex items-center gap-2 transition">
                 <i class="fa-solid fa-user-gear"></i> بياناتي
             </button>
@@ -52,6 +59,84 @@
 
     <div class="max-w-6xl mx-auto w-full p-6 mt-2">
 
+        
+        <h2 class="text-2xl font-bold text-white mb-6 border-r-4 pr-3" style="border-color: var(--gold);">لوحة التحكم الرئيسية</h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <!-- الكل يشوفهم -->
+            <div class="dash-card" onclick="window.location.href='dashboard.html'">
+                <i class="fa-solid fa-users"></i>
+                <h3>عرض المجموعة</h3>
+                <p>قاعدة بيانات الكشافين، التعديل، والبحث</p>
+            </div>
+            
+            <div class="dash-card" onclick="window.location.href='form.html'">
+                <i class="fa-solid fa-user-plus"></i>
+                <h3>إضافة كشاف</h3>
+                <p>تسجيل بيانات كشاف جديد في السيستم</p>
+            </div>
+
+            <div class="dash-card" onclick="window.location.href='follow_up.html'">
+                <i class="fa-solid fa-phone"></i>
+                <h3>الافتقاد</h3>
+                <p>متابعة الكشافين والاتصال بهم</p>
+            </div>
+            
+            <div class="dash-card" onclick="window.location.href='attendance_history.html'">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <h3>سجل الحضور</h3>
+                <p>عرض سجل الحضور بالتاريخ والتفاصيل</p>
+            </div>
+            
+            <div class="dash-card" onclick="window.location.href='benchmark.html'">
+                <i class="fa-solid fa-chart-line"></i>
+                <h3>مقارنة القطاعات</h3>
+                <p>نسبة الحضور العامة لكل قطاع</p>
+            </div>
+            <div class="dash-card" onclick="window.location.href='documentation.html'">
+                <i class="fa-solid fa-book"></i>
+                <h3>التوثيق</h3>
+                <p>خريطة المشروع، الصفحات، والأدوار</p>
+            </div>
+            <!-- TroopLeader + SectorLeader + General + Master -->
+            <div class="dash-card role-troop-up hidden" onclick="window.location.href='patrols.html'">
+                <i class="fa-solid fa-shield-halved"></i>
+                <h3>الطلايع</h3>
+                <p>إدارة الطلايع وتوزيع الكشافين</p>
+            </div>
+            
+            <!-- SectorLeader + General + Master -->
+            <div class="dash-card role-sector-up hidden" onclick="window.location.href='sector_requests.html'">
+                <span class="badge hidden" id="sectorReqBadge">0</span>
+                <i class="fa-solid fa-inbox"></i>
+                <h3>طلبات الطلايع</h3>
+                <p>مراجعة طلبات إنشاء وتعديل الطلايع</p>
+            </div>
+            
+            <!-- SectorLeader + General + Master -->
+            <div class="dash-card role-sector-up hidden" onclick="window.location.href='requests.html'">
+                <span class="badge hidden" id="scoutReqBadge">0</span>
+                <i class="fa-solid fa-bell"></i>
+                <h3>طلبات الإضافة</h3>
+                <p>مراجعة الكشافين الجدد وقبولهم</p>
+            </div>
+            
+            <!-- General + Master only -->
+            <div class="dash-card role-admin hidden" onclick="window.location.href='leader_requests.html'">
+                <i class="fa-solid fa-user-shield"></i>
+                <h3>طلبات القادة الجدد</h3>
+                <p>تفعيل حسابات القادة وتحديد صلاحياتهم</p>
+            </div>
+            
+            <div class="dash-card role-admin hidden" onclick="window.location.href='leaders.html'">
+                <i class="fa-solid fa-user-tie"></i>
+                <h3>إدارة القادة</h3>
+                <p>إضافة قادة، توزيع الفرق، وتعديل الصلاحيات</p>
+            </div>
+            
+        </div>
+        <br>
         <!-- قسم القطاع / الفرقة -->
         <div class="bg-[var(--dark2)] border border-[var(--border)] rounded-xl p-5 mb-6">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
@@ -79,79 +164,8 @@
                 <div class="text-center text-gray-500 py-4 col-span-full">جاري التحميل...</div>
             </div>
         </div>
-
-        <h2 class="text-2xl font-bold text-white mb-6 border-r-4 pr-3" style="border-color: var(--gold);">لوحة التحكم الرئيسية</h2>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-            <!-- الكل يشوفهم -->
-            <div class="dash-card" onclick="window.location.href='dashboard.html'">
-                <i class="fa-solid fa-users"></i>
-                <h3>عرض المجموعة</h3>
-                <p>قاعدة بيانات الكشافين، التعديل، والبحث</p>
-            </div>
-
-            <div class="dash-card" onclick="window.location.href='form.html'">
-                <i class="fa-solid fa-user-plus"></i>
-                <h3>إضافة كشاف</h3>
-                <p>تسجيل بيانات كشاف جديد في السيستم</p>
-            </div>
-
-            <div class="dash-card" onclick="window.location.href='follow_up.html'">
-                <i class="fa-solid fa-phone"></i>
-                <h3>الافتقاد</h3>
-                <p>متابعة الكشافين والاتصال بهم</p>
-            </div>
-
-            <div class="dash-card" onclick="window.location.href='attendance_history.html'">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-                <h3>سجل الحضور</h3>
-                <p>عرض سجل الحضور بالتاريخ والتفاصيل</p>
-            </div>
-
-            <div class="dash-card" onclick="window.location.href='benchmark.html'">
-                <i class="fa-solid fa-chart-line"></i>
-                <h3>مقارنة القطاعات</h3>
-                <p>نسبة الحضور العامة لكل قطاع</p>
-            </div>
-
-            <!-- TroopLeader + SectorLeader + General + Master -->
-            <div class="dash-card role-troop-up hidden" onclick="window.location.href='patrols.html'">
-                <i class="fa-solid fa-shield-halved"></i>
-                <h3>الطلايع</h3>
-                <p>إدارة الطلايع وتوزيع الكشافين</p>
-            </div>
-
-            <!-- SectorLeader + General + Master -->
-            <div class="dash-card role-sector-up hidden" onclick="window.location.href='sector_requests.html'">
-                <span class="badge hidden" id="sectorReqBadge">0</span>
-                <i class="fa-solid fa-inbox"></i>
-                <h3>طلبات الطلايع</h3>
-                <p>مراجعة طلبات إنشاء وتعديل الطلايع</p>
-            </div>
-
-            <!-- SectorLeader + General + Master -->
-            <div class="dash-card role-sector-up hidden" onclick="window.location.href='requests.html'">
-                <span class="badge hidden" id="scoutReqBadge">0</span>
-                <i class="fa-solid fa-bell"></i>
-                <h3>طلبات الإضافة</h3>
-                <p>مراجعة الكشافين الجدد وقبولهم</p>
-            </div>
-
-            <!-- General + Master only -->
-            <div class="dash-card role-admin hidden" onclick="window.location.href='leader_requests.html'">
-                <i class="fa-solid fa-user-shield"></i>
-                <h3>طلبات القادة الجدد</h3>
-                <p>تفعيل حسابات القادة وتحديد صلاحياتهم</p>
-            </div>
-
-            <div class="dash-card role-admin hidden" onclick="window.location.href='leaders.html'">
-                <i class="fa-solid fa-user-tie"></i>
-                <h3>إدارة القادة</h3>
-                <p>إضافة قادة، توزيع الفرق، وتعديل الصلاحيات</p>
-            </div>
-
-        </div>
+        
+        
     </div>
 
     <script>
@@ -234,9 +248,11 @@
             let query = supabaseClient.from('leaders').select('full_name, role, troop, sector, username').eq('status', 'نشط');
 
             if (user.role === 'Master') {
+               // ماستر يشوف كل القادة النشطين غير نفسه، بما فيهم الماستر و القائد العام إن وجدوا
                 query = query.neq('username', user.username);
             } else if (user.role === 'General') {
-                query = query.neq('username', user.username).neq('role', 'Master');
+                 // القائد العام يشوف كل القادة النشطين غير نفسه، بما فيهم الماستر والقائد العام إن وجدوا
+                query = query.neq('username', user.username);
             } else if (user.role === 'SectorLeader') {
                 query = query.neq('username', user.username).neq('role', 'Master').neq('role', 'General');
             } else if (user.role === 'TroopLeader') {
@@ -306,6 +322,47 @@
             }
 
             console.log('✅ Filtered leaders:', filtered);
+            
+            const rolePriorityByViewer = {
+                'Master': {
+                     'Master': 1,
+                    'General': 2,
+                    'SectorLeader': 3,
+                    'TroopLeader': 4,
+                    'Viewer': 5
+                },
+                'General': {
+                    'Master': 1,
+                    'General': 2,
+                    'SectorLeader': 3,
+                    'TroopLeader': 4,
+                    'Viewer': 5
+                },
+                'SectorLeader': {
+                    'SectorLeader': 1,
+                    'TroopLeader': 2,
+                    'Viewer': 3
+                },
+                'TroopLeader': {
+                    'SectorLeader': 1,
+                    'TroopLeader': 2,
+                    'Viewer': 3
+                }
+            };
+
+            const rolePriority = rolePriorityByViewer[user.role] || {
+                 'Master': 1,
+                'General': 2,
+                'SectorLeader': 3,
+                'TroopLeader': 4,
+                'Viewer': 5
+            };
+
+            filtered.sort((a, b) => {
+                const roleDiff = (rolePriority[a.role] || 99) - (rolePriority[b.role] || 99);
+                if (roleDiff !== 0) return roleDiff;
+                return (a.full_name || '').localeCompare(b.full_name || '', 'ar');
+            });
 
             document.getElementById('leadersCount').textContent = filtered.length;
 
@@ -322,19 +379,24 @@
                 'متقدم ورائدات': 'متقدم ورائدات'
             };
             
-            leadersDiv.innerHTML = filtered.map(l => `
-                <div class="bg-[var(--dark3)] border border-[var(--border)] rounded-xl p-3 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-[rgba(201,168,76,0.15)] flex items-center justify-center text-[var(--gold)]">
+            leadersDiv.innerHTML = filtered.map(l => {
+                const featured = ['Master', 'General', 'SectorLeader'].includes(l.role);
+                const featuredClass = featured ? 'featured-leader' : '';
+
+                return `<div class="leader-card bg-[var(--dark3)] border border-[var(--border)] rounded-xl p-3 flex items-center gap-3 ${featuredClass}">
+                    <div class="leader-avatar w-10 h-10 rounded-full bg-[rgba(201,168,76,0.15)] flex items-center justify-center text-[var(--gold)] border border-[rgba(201,168,76,0.2)]">
                         <i class="fa-solid fa-user-tie"></i>
                     </div>
                     <div class="flex-1">
                         <p class="text-white font-bold text-sm">${l.full_name}</p>
-                        <p class="text-xs text-gray-400">${roleNamesAr[l.role] || l.role}</p>
+                        <p class="leader-role text-xs text-gray-400">${roleNamesAr[l.role] || l.role}</p>
                         <p class="text-xs text-[var(--gold)] mt-0.5">${l.role === 'SectorLeader' ? (sectorNamesDisplay[l.sector] || l.sector || '—') : (l.troop || '—')}</p>
                     </div>
-                </div>
-            `).join('');
+                               </div>`;
+            }).join('');
         }
+
+
 
         // ===== Badges =====
         async function loadBadges() {

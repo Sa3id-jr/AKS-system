@@ -31,6 +31,22 @@ BEGIN
     END IF;
 END $$;
 
+-- 1.1 تحديث FK ليتعامل مع الحذف المتتالي دون تكرار القيد
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'scouts_leader_sync_id_fkey'
+          AND table_name = 'scouts'
+    ) THEN
+        ALTER TABLE scouts DROP CONSTRAINT scouts_leader_sync_id_fkey;
+    END IF;
+
+    ALTER TABLE scouts
+        ADD CONSTRAINT scouts_leader_sync_id_fkey
+        FOREIGN KEY (leader_sync_id) REFERENCES leaders(id) ON DELETE CASCADE;
+END $$;
+
 -- 2. حذف أي سجلات قديمة للقادة في عشيرة الجوالة (تنظيف)
 DELETE FROM scouts 
 WHERE leader_sync_id IS NOT NULL 
