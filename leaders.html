@@ -26,6 +26,9 @@
         .form-input:focus { border-color: var(--gold); }
         .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
         .badge-role { background: rgba(201,168,76,0.12); color: var(--gold-lt); border: 1px solid rgba(201,168,76,0.3); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+        tbody tr.leader-row-featured { border-right: 3px solid var(--gold); background: rgba(201,168,76,0.08); }
+        tbody tr.leader-row-featured:hover { background: rgba(201,168,76,0.14); }
+        tbody tr.leader-row-featured td:first-child { color: var(--gold-lt); font-weight: 700; }
     </style>
 </head>
 <body>
@@ -42,6 +45,28 @@
     </nav>
 
     <div class="max-w-6xl mx-auto mt-6 px-4 mb-10">
+        
+
+        <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <input type="text" id="leaderSearchInput" class="form-input" placeholder="ابحث بالاسم بالكامل...">
+    <select id="leaderRoleFilter" class="form-input">
+        <option value="الكل">كل الصلاحيات</option>
+        <option value="Master">ماستر</option>
+        <option value="General">قائد عام</option>
+        <option value="SectorLeader">قائد قطاع</option>
+        <option value="TroopLeader">قائد فرقة</option>
+        <option value="Viewer">عشيرة</option>
+    </select>
+    <select id="leaderStageFilter" class="form-input">
+        <option value="الكل">كل الفرق / القطاعات</option>
+        <option value="براعم">براعم</option>
+        <option value="أشبال وزهرات">أشبال وزهرات</option>
+        <option value="مبتدئ ومرشدات">مبتدئ ومرشدات</option>
+        <option value="متقدم ورائدات">متقدم ورائدات</option>
+        <option value="مرشح جوالة">مرشح جوالة</option>
+        <option value="عشيرة الجوالة">عشيرة الجوالة</option>
+    </select>
+</div>
         <div class="table-card">
             <div class="overflow-x-auto">
                 <table class="w-full text-right border-collapse whitespace-nowrap">
@@ -149,33 +174,136 @@
 
         const currentUser = JSON.parse(localStorage.getItem('scout_leader_session') || 'null');
         if (!currentUser || (currentUser.role !== 'Master' && currentUser.role !== 'General')) window.location.href = 'home.html';
+        
+        let leadersCache = [];
 
-        async function loadLeaders() {
-            const { data, error } = await supabaseClient.from('leaders').select('*').order('created_at', { ascending: true });
-            const tbody = document.getElementById('leadersTableBody');
-            tbody.innerHTML = '';
-            
-            if (error) { 
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">فشل التحميل.${error.message}</td></tr>`; 
-                return; 
+        
+
+        function validateArabicFullNameValue(name) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return { ok: false, message: 'الاسم الكامل مطلوب.' };
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length < 3) {
+        return { ok: false, message: 'الاسم الكامل لازم يكون 3 كلمات على الأقل بالعربي.' };
+    }
+    const arabicFullNameRegex = /^[\u0600-\u06FF\s]+$/;
+    if (!arabicFullNameRegex.test(trimmed)) {
+        return { ok: false, message: 'الاسم الكامل لازم يكون باللغة العربية فقط.' };
+    }
+    return { ok: true, message: '' };
+}
+
+async function usernameExists(username, ignoreId = null) {
+            const normalizedUsername = String(username || '').trim();
+            if (!normalizedUsername) return false;
+
+            const { data, error } = await supabaseClient
+                .from('leaders')
+                .select('id, username')
+                .eq('username', normalizedUsername);
+
+            if (error) {
+                console.error('Username lookup failed:', error);
+                throw error;
             }
 
-            if (!data || data.length === 0) {
+            if (!data || data.length === 0) return false;
+
+            if (ignoreId) {
+                return data.some(row => String(row.id) !== String(ignoreId));
+            }
+
+            return true;
+        }
+
+        async function loadLeaders() {
+            const { data, error } = await supabaseClient.from('leaders').select('*');
+            const tbody = document.getElementById('leadersTableBody');
+            tbody.innerHTML = '';
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">فشل التحميل.${error.message}</td></tr>`;
+                return;
+            }
+
+            leadersCache = data || [];
+            renderLeadersTable();
+        }
+
+        function getLeaderSortRank(leader) {
+            if (leader.role === 'Master' || leader.role === 'General') return 0;
+            if (leader.role === 'SectorLeader' && leader.sector === 'عشيرة جوالة') return 1;
+            if (leader.role === 'TroopLeader' && leader.troop === 'عشيرة الجوالة') return 2;
+            if (leader.role === 'SectorLeader' && leader.sector === 'مرشح جوالة') return 3;
+            if (leader.role === 'TroopLeader' && leader.troop === 'مرشح جوالة') return 4;
+            if (leader.role === 'SectorLeader' && leader.sector === 'ثانوي') return 5;
+            if (leader.role === 'TroopLeader' && leader.troop === 'متقدم ورائدات') return 6;
+            if (leader.role === 'SectorLeader' && leader.sector === 'اعدادي') return 7;
+            if (leader.role === 'TroopLeader' && leader.troop === 'مبتدئ ومرشدات') return 8;
+            if (leader.role === 'SectorLeader' && leader.sector === 'ابتدائي') return 9;
+            if (leader.role === 'TroopLeader' && leader.troop === 'أشبال وزهرات') return 10;
+            if (leader.role === 'SectorLeader' && leader.sector === 'براعم') return 11;
+            if (leader.role === 'TroopLeader' && leader.troop === 'براعم') return 12;
+            if (leader.role === 'Viewer') return 13;
+            return 99;
+        }
+        
+        function getLeaderStage(leader) {
+            if (leader.role === 'TroopLeader') return leader.troop || null;
+            if (leader.role === 'SectorLeader') {
+                const sectorToStage = {
+                    'براعم': 'براعم',
+                    'ابتدائي': 'أشبال وزهرات',
+                    'اعدادي': 'مبتدئ ومرشدات',
+                    'ثانوي': 'متقدم ورائدات',
+                    'مرشح جوالة': 'مرشح جوالة',
+                    'عشيرة جوالة': 'عشيرة الجوالة'
+                };
+                return sectorToStage[leader.sector] || leader.sector || null;
+            }
+            return null;
+        }
+        function renderLeadersTable() {
+            const tbody = document.getElementById('leadersTableBody');
+            tbody.innerHTML = '';
+
+            if (!leadersCache || leadersCache.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">مفيش قادة متسجلين.</td></tr>`;
                 return;
             }
 
-            data.forEach(leader => {
+            const searchTerm = (document.getElementById('leaderSearchInput')?.value || '').trim();
+            const roleFilter = document.getElementById('leaderRoleFilter')?.value || 'الكل';
+            const stageFilter = document.getElementById('leaderStageFilter')?.value || 'الكل';
+
+            const filtered = leadersCache.filter(leader => {
+                const matchesSearch = (leader.full_name || '').includes(searchTerm);
+                const matchesRole = roleFilter === 'الكل' || leader.role === roleFilter;
+                const matchesStage = stageFilter === 'الكل' || getLeaderStage(leader) === stageFilter;
+                return matchesSearch && matchesRole && matchesStage;
+            });
+            const sorted = [...filtered].sort((a, b) => {
+                const rankDiff = getLeaderSortRank(a) - getLeaderSortRank(b);
+                if (rankDiff !== 0) return rankDiff;
+                return (a.full_name || '').localeCompare(b.full_name || '', 'ar');
+            });
+
+            if (sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">مفيش نتايج.</td></tr>`;
+                return;
+            }
+
+            sorted.forEach(leader => {
                 let roleArabic = leader.role === 'Master' ? 'ماستر' : leader.role === 'General' ? 'قائد عام' : leader.role === 'Viewer' ? 'عشيرة' : leader.role === 'SectorLeader' ? 'قائد قطاع' : 'قائد فرقة';
                 let troopDisplay = (leader.role === 'Master' || leader.role === 'General' || leader.role === 'Viewer') ? 'الكل' : (leader.role === 'SectorLeader' ? `قطاع: ${leader.sector || '-'}` : `فرقة: ${leader.troop || '-'}`);
-                
+
                 let actionsHtml = '';
-                
+
                 if (leader.username === 'admin') {
                     actionsHtml = `<span class="text-xs text-gray-600">محمي</span>`;
                 } else {
                     actionsHtml = `
-                        <button onclick="openEditLeaderModal('${leader.id}', '${leader.full_name}', '${leader.username}', '${leader.password}', '${leader.role}', '${leader.troop || ''}', '${leader.sector || ''}', '${leader.phone || ''}', '${leader.employment_status || ''}', '${leader.education_level || ''}', '${leader.university || ''}', '${leader.faculty || ''}', '${leader.academic_year || ''}', '${leader.job_title || ''}', '${leader.workplace || ''}', '${(leader.scouting_experience || '').replace(/'/g, "\\'")}' )" class="text-blue-400 hover:text-blue-300 ml-3">
+                        <button data-leader-id="${leader.id}" class="edit-leader-btn text-blue-400 hover:text-blue-300 ml-3">
                             <i class="fa-solid fa-user-gear"></i>
                         </button>
                         <button onclick="deleteLeader('${leader.id}', '${leader.username}')" class="text-red-500 hover:text-red-400">
@@ -185,7 +313,10 @@
                 }
 
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
+                    if (['Master', 'General', 'SectorLeader'].includes(leader.role)) {
+                        tr.classList.add('leader-row-featured');
+                    }
+                    tr.innerHTML = `
                     <td class="p-4 text-white font-medium">${leader.full_name}</td>
                     <td class="p-4 font-mono text-gray-300">${leader.username}</td>
                     <td class="p-4 font-mono text-gray-300" dir="ltr">${leader.phone || '-'}</td>
@@ -195,7 +326,17 @@
                 `;
                 tbody.appendChild(tr);
             });
+            tbody.querySelectorAll('[data-leader-id]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    openEditLeaderModal(btn.getAttribute('data-leader-id'));
+                });
+            });
         }
+
+        document.getElementById('leaderSearchInput')?.addEventListener('input', renderLeadersTable);
+        document.getElementById('leaderRoleFilter')?.addEventListener('change', renderLeadersTable);
+        document.getElementById('leaderStageFilter')?.addEventListener('change', renderLeadersTable);
+
 
         function toggleTroopField() {
             const role = document.getElementById('leaderRole').value;
@@ -219,27 +360,33 @@
             document.getElementById('leaderModal').classList.remove('hidden');
         }
 
-        function openEditLeaderModal(id, name, username, password, role, troop, sector, phone, employmentStatus, educationLevel, university, faculty, academicYear, jobTitle, workplace, scoutingExperience) {
-            document.getElementById('leaderId').value = id;
-            document.getElementById('leaderName').value = name;
-            document.getElementById('leaderUsername').value = username;
+             function openEditLeaderModal(id) {
+            const leader = leadersCache.find(row => String(row.id) === String(id));
+            if (!leader) {
+                alert('لم يتم العثور على بيانات هذا القائد.');
+                return;
+            }
+
+            document.getElementById('leaderId').value = leader.id;
+            document.getElementById('leaderName').value = leader.full_name || '';
+            document.getElementById('leaderUsername').value = leader.username || '';
             document.getElementById('leaderUsername').disabled = true;
-            document.getElementById('leaderPassword').value = password;
-            document.getElementById('leaderRole').value = role;
-            document.getElementById('leaderPhone').value = phone || '';
+            document.getElementById('leaderPassword').value = leader.password || '';
+            document.getElementById('leaderRole').value = leader.role || 'TroopLeader';
+            document.getElementById('leaderPhone').value = leader.phone || '';
             
-            document.getElementById('leaderTroop').value = troop || 'أشبال وزهرات';
-            document.getElementById('leaderSector').value = sector || 'ابتدائي';
+            document.getElementById('leaderTroop').value = leader.troop || 'أشبال وزهرات';
+            document.getElementById('leaderSector').value = leader.sector || 'ابتدائي';
             
             // تحميل البيانات الجديدة
-            document.getElementById('leaderEmploymentStatus').value = employmentStatus || '';
-            document.getElementById('leaderEducationLevel').value = educationLevel || '';
-            document.getElementById('leaderUniversity').value = university || '';
-            document.getElementById('leaderFaculty').value = faculty || '';
-            document.getElementById('leaderAcademicYear').value = academicYear || '';
-            document.getElementById('leaderJobTitle').value = jobTitle || '';
-            document.getElementById('leaderWorkplace').value = workplace || '';
-            document.getElementById('leaderScoutingExperience').value = scoutingExperience || '';
+            document.getElementById('leaderEmploymentStatus').value = leader.employment_status || '';
+            document.getElementById('leaderEducationLevel').value = leader.education_level || '';
+            document.getElementById('leaderUniversity').value = leader.university || '';
+            document.getElementById('leaderFaculty').value = leader.faculty || '';
+            document.getElementById('leaderAcademicYear').value = leader.academic_year || '';
+            document.getElementById('leaderJobTitle').value = leader.job_title || '';
+            document.getElementById('leaderWorkplace').value = leader.workplace || '';
+            document.getElementById('leaderScoutingExperience').value = leader.scouting_experience || '';
             
             toggleTroopField();
             toggleLeaderEmploymentFields();
@@ -253,7 +400,26 @@
             e.preventDefault();
             const id = document.getElementById('leaderId').value;
             const role = document.getElementById('leaderRole').value;
-            
+            const leaderName = document.getElementById('leaderName').value.trim();
+            const username = document.getElementById('leaderUsername').value.trim();
+
+            const nameValidation = validateArabicFullNameValue(leaderName);
+                if (!nameValidation.ok) {
+                    alert(nameValidation.message);
+                    return;
+                }
+
+                if (!username) {
+                    alert('اسم المستخدم مطلوب.');
+                    return;
+                }
+
+            const duplicate = await usernameExists(username, id || null);
+            if (duplicate) {
+                alert('اسم المستخدم ده موجود بالفعل، اختار اسم مستخدم مختلف.');
+                return;
+            }
+
             let troop = null, sector = null;
             if (role === 'TroopLeader') troop = document.getElementById('leaderTroop').value;
             else if (role === 'SectorLeader') sector = document.getElementById('leaderSector').value;
@@ -262,8 +428,8 @@
             const employmentStatus = document.getElementById('leaderEmploymentStatus').value || null;
 
             const leaderData = {
-                full_name: document.getElementById('leaderName').value.trim(),
-                username: document.getElementById('leaderUsername').value.trim(),
+                full_name: leaderName,
+                username: username,
                 password: document.getElementById('leaderPassword').value.trim(),
                 role: role,
                 troop: troop,
@@ -287,25 +453,44 @@
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true; saveBtn.textContent = 'جاري الحفظ...';
 
-            if (id) {
-                const { error } = await supabaseClient.from('leaders').update(leaderData).eq('id', id);
-                if (error) alert('خطأ: ' + error.message);
-            } else {
-                leaderData.status = 'نشط';
-                const { error } = await supabaseClient.from('leaders').insert([leaderData]);
-                if (error) alert(error.code === '23505' ? 'اليوزر ده محجوز!' : 'خطأ: ' + error.message);
+             try {
+                if (id) {
+                    const { error } = await supabaseClient.from('leaders').update(leaderData).eq('id', id);
+                    if (error) alert('خطأ: ' + error.message);
+                } else {
+                    leaderData.status = 'نشط';
+                    const { error } = await supabaseClient.from('leaders').insert([leaderData]);
+                    if (error) alert(error.code === '23505' ? 'اليوزر ده محجوز!' : 'خطأ: ' + error.message);
+                }
+            } finally {
+                saveBtn.disabled = false; saveBtn.textContent = 'حفظ البيانات';
             }
 
-            saveBtn.disabled = false; saveBtn.textContent = 'حفظ البيانات';
+           
             closeModal(); loadLeaders();
         }
 
         async function deleteLeader(id, username) {
             if (username === 'admin') { alert('لا يمكن حذف حساب الماستر الأساسي!'); return; }
             if (confirm(`متأكد إنك عايز تحذف القائد ${username} نهائياً؟`)) {
-                const { error } = await supabaseClient.from('leaders').delete().eq('id', id);
-                if (error) alert('فشل الحذف: ' + error.message);
-                else { alert('تم حذف القائد بنجاح'); loadLeaders(); }
+                 try {
+                    const { error: scoutDeleteError } = await supabaseClient
+                        .from('scouts')
+                        .delete()
+                        .eq('leader_sync_id', id);
+
+                    if (scoutDeleteError) {
+                        throw scoutDeleteError;
+                    }
+
+                    const { error } = await supabaseClient.from('leaders').delete().eq('id', id);
+                    if (error) throw error;
+
+                    alert('تم حذف القائد بنجاح');
+                    loadLeaders();
+                } catch (error) {
+                    alert('فشل الحذف: ' + (error && error.message ? error.message : error));
+                }
             }
         }
 

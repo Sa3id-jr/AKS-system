@@ -3,6 +3,14 @@
 -- تحديث جميع السجلات لتوحيد أسماء المراحل
 -- ================================================================================
 
+-- Patrol delete fix: clear attendance FK dependency before removing a patrol.
+ALTER TABLE public.attendance
+DROP CONSTRAINT IF EXISTS attendance_patrol_id_fkey;
+
+ALTER TABLE public.attendance
+ADD CONSTRAINT attendance_patrol_id_fkey
+FOREIGN KEY (patrol_id) REFERENCES public.patrols(id) ON DELETE CASCADE;
+
 -- 1. تحديث جدول leaders (قادة الفرق)
 -- تحويل أشبال وزهرات
 UPDATE leaders SET troop = 'أشبال وزهرات' WHERE troop IN ('أشبال', 'زهرات');
